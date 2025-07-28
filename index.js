@@ -111,7 +111,7 @@ app.get('/players/playtime', async (req, res) => {
       const seconds = times.playtime % 60;
       const playtime = `${hours}h ${minutes}m ${seconds}s`;
       const totalSeconds = times.playtime;
-      return { user: player, playtime, totalSeconds };
+      return { user: player, playtime, totalSeconds, isOnline: times.isOnline };
     });
 
     res.send({ success: true, data: playtimeData });
