@@ -10,6 +10,7 @@ const RCON_OPTIONS = {
   port: 25575,
   password: process.env.RCON_PASSWORD, // ← Now sourced from .env
 };
+const SERVER_PATH = process.env.SERVER_PATH;
 
 app.get('/', (req, res) => {
   res.send('Hello from web API');
@@ -35,7 +36,7 @@ app.get('/players', async (req, res) => {
 app.get('/players/playtime', async (req, res) => {
   // Read the join and leave entries from the minecraft-server/logs/latest.log file
   const fs = require('fs');
-  const logFilePath = '~/minecraft-server/logs/latest.log';
+  const logFilePath = `${SERVER_PATH}/logs/latest.log`;
   try {
     const logData = fs.readFileSync(logFilePath, 'utf8');
     const joinRegex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[Server thread\/INFO\]: (\w+) joined the game/;
