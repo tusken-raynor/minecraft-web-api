@@ -32,6 +32,43 @@ app.get('/players', async (req, res) => {
   }
 });
 
+app.get('/players/playtime', async (req, res) => {
+  // Read the join and leave entries from the minecraft-server/logs/latest.log file
+  const fs = require('fs');
+  const logFilePath = '~/minecraft-server/logs/latest.log';
+  try {
+    const logData = fs.readFileSync(logFilePath, 'utf8');
+    const joinRegex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[Server thread\/INFO\]: (\w+) joined the game/;
+    const leaveRegex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[Server thread\/INFO\]: (\w+) left the game/;
+
+    const players = {};
+    logData.split('\n').forEach(line => {
+      const joinMatch = line.match(joinRegex);
+      const leaveMatch = line.match(leaveRegex);
+      if (joinMatch) {
+        const [_, timestamp, player] = joinMatch;
+        players[player] = { joinTime: new Date(timestamp), leaveTime: null };
+      } else if (leaveMatch) {
+        const [_, timestamp, player] = leaveMatch;
+        if (players[player]) {
+          players[player].leaveTime = new Date(timestamp);
+        }
+      }
+    });
+
+    // Calculate playtime
+    const playtimeData = Object.entries(players).map(([player, times]) => {
+      const playtime = times.leaveTime ? (times.leaveTime - times.joinTime) / 1000 : null; // in seconds
+      return { player, playtime };
+    });
+
+    res.send({ success: true, data: playtimeData });
+  } catch (error) {
+    console.error('Error reading log file:', error);
+    res.status(500).send({ success: false, message: error.message });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);
 });

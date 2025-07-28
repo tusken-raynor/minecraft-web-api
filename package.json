@@ -1,11 +1,13 @@
 {
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"No tests specified\" && exit 0"
+    "serve": "node index.js",
+    "test": "echo \"No tests specified\" && exit 0",
+    "start": "sudo systemctl restart minecraft-web-api"
   },
   "dependencies": {
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "fs": "^0.0.1-security",
     "rcon-client": "^4.2.5"
   }
 }
