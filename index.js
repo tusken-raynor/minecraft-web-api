@@ -38,23 +38,52 @@ app.get('/players/playtime', async (req, res) => {
   const fs = require('fs');
   const logFilePath = `${SERVER_PATH}/logs/latest.log`;
 
-  // Get now time in HH:MM:SS format in GMT timezone
+  const startQuery = req.query.start;
+  const endQuery = req.query.end;
+
+  // Throw an error if the start query or end query is not in HH:MM:SS format
+  const timeRegex = /^([01]\d|2[0-3]):([05]\d|[0-5]\d):([0-5]\d)$/;
+  if (startQuery && !timeRegex.test(startQuery)) {
+    return res.status(400).send({ success: false, message: 'Invalid start time format. Use HH:MM:SS.' });
+  }
+  if (endQuery && !timeRegex.test(endQuery)) {
+    return res.status(400).send({ success: false, message: 'Invalid end time format. Use HH:MM:SS.' });
+  }
+
+  const startTime = startQuery || '00:00:00'; // Default to start of the log if not provided
+  let endTime = endQuery || null;
+  
+  // Get now time in HH:MM:SS format in UTC
   const now = new Date();
   const hours = String(now.getUTCHours()).padStart(2, '0');
   const minutes = String(now.getUTCMinutes()).padStart(2, '0');
   const seconds = String(now.getUTCSeconds()).padStart(2, '0');
   const nowTime = `${hours}:${minutes}:${seconds}`; // HH:MM:SS
+  // If end time is not provided, or end time is after the current time, use the current time
+  if (!endTime || endTime > nowTime) {
+    endTime = nowTime;
+  }
 
   const evaluateTime = (joinTime, leaveTime) => {
     // If both times are not set, return 0
     if (!joinTime && !leaveTime) return 0;
+    // If the joinTime is after the end time, return 0
+    if (joinTime && joinTime > endTime) return 0;
+    // If joinTime is before startTime, set it to startTime
+    if (joinTime && joinTime < startTime) {
+      joinTime = startTime; // Use start time as join time
+    }
+    // If the leaveTime is after the end time, set it to the end time
+    if (leaveTime && leaveTime > endTime) {
+      leaveTime = endTime; // Use end time as leave time
+    }
     // If joinTime is not set, assume player joined at the start of the log
     if (!joinTime) {
-      joinTime = '00:00:00'; // Default to start of the log
+      joinTime = startTime; // Default to start of the log
     }
     // If only leaveTime is set, assume player is still online
     else if (!leaveTime) {
-      leaveTime = nowTime; // Use current time as leave time
+      leaveTime = endTime; // Use end time as leave time
     }
 
     // Convert time string so seconds can be calculated
@@ -99,7 +128,7 @@ app.get('/players/playtime', async (req, res) => {
     // If any player is still online, evaluate their playtime with the current time
     Object.keys(players).forEach(player => {
       if (players[player].joinTime && !players[player].leaveTime) {
-        players[player].playtime += evaluateTime(players[player].joinTime, nowTime);
+        players[player].playtime += evaluateTime(players[player].joinTime, endTime);
         players[player].isOnline = true; // Mark player as online
       }
     });
