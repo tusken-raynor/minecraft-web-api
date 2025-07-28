@@ -1,8 +1,11 @@
 {
   "scripts": {
-    "serve": "node index.js",
+    "dev": "node index.js",
     "test": "echo \"No tests specified\" && exit 0",
-    "start": "sudo systemctl restart minecraft-web-api"
+    "start": "sudo systemctl start minecraft-web-api",
+    "restart": "sudo systemctl restart minecraft-web-api",
+    "stop": "sudo systemctl stop minecraft-web-api",
+    "status": "sudo systemctl status minecraft-web-api"
   },
   "dependencies": {
     "dotenv": "^17.2.0",

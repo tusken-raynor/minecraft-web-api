@@ -22,7 +22,7 @@ app.get('/players', async (req, res) => {
     await rcon.connect();
     const response = await rcon.send('list');
     await rcon.end();
-    const messageParts = response.match(/(\d+) of (\d+) players online: (.+)/);
+    const messageParts = response.match(/(\d+) of a max of (\d+) players online: (.+)/);
     const playerCount = messageParts ? parseInt(messageParts[1], 10) : 0;
     const maxPlayers = messageParts ? parseInt(messageParts[2], 10) : 0;
     const players = messageParts ? messageParts[3].split(', ') : [];
@@ -37,30 +37,80 @@ app.get('/players/playtime', async (req, res) => {
   // Read the join and leave entries from the minecraft-server/logs/latest.log file
   const fs = require('fs');
   const logFilePath = `${SERVER_PATH}/logs/latest.log`;
+
+  // Get now time in HH:MM:SS format in GMT timezone
+  const now = new Date();
+  const hours = String(now.getUTCHours()).padStart(2, '0');
+  const minutes = String(now.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(now.getUTCSeconds()).padStart(2, '0');
+  const nowTime = `${hours}:${minutes}:${seconds}`; // HH:MM:SS
+
+  const evaluateTime = (joinTime, leaveTime) => {
+    // If both times are not set, return 0
+    if (!joinTime && !leaveTime) return 0;
+    // If joinTime is not set, assume player joined at the start of the log
+    if (!joinTime) {
+      joinTime = '00:00:00'; // Default to start of the log
+    }
+    // If only leaveTime is set, assume player is still online
+    else if (!leaveTime) {
+      leaveTime = nowTime; // Use current time as leave time
+    }
+
+    // Convert time string so seconds can be calculated
+    const parseTime = (timeStr) => {
+      const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+      return (hours * 3600 + minutes * 60 + seconds); // Convert to seconds
+    };
+    const joinTimeMs = parseTime(joinTime);
+    const leaveTimeMs = parseTime(leaveTime);
+
+    // Calculate playtime in seconds
+    const playtimeMs = leaveTimeMs - joinTimeMs;
+    return playtimeMs > 0 ? Math.floor(playtimeMs) : 0; // Ensure non-negative playtime
+  };
+
   try {
     const logData = fs.readFileSync(logFilePath, 'utf8');
-    const joinRegex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[Server thread\/INFO\]: (\w+) joined the game/;
-    const leaveRegex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[Server thread\/INFO\]: (\w+) left the game/;
+    const joinLeaveRegex = /(\d{2}:\d{2}:\d{2})\] \[Server thread\/INFO\]: (\w+) (joined|left) the game/;
 
     const players = {};
     logData.split('\n').forEach(line => {
-      const joinMatch = line.match(joinRegex);
-      const leaveMatch = line.match(leaveRegex);
-      if (joinMatch) {
-        const [_, timestamp, player] = joinMatch;
-        players[player] = { joinTime: new Date(timestamp), leaveTime: null };
-      } else if (leaveMatch) {
-        const [_, timestamp, player] = leaveMatch;
-        if (players[player]) {
-          players[player].leaveTime = new Date(timestamp);
+      const match = line.match(joinLeaveRegex);
+      if (match) {
+        const [_, time, player, action] = match;
+        if (!players[player]) {
+          players[player] = { joinTime: null, leaveTime: null, playtime: 0 };
         }
+        if (action === 'joined') {
+          players[player].joinTime = time;
+        } else {
+          players[player].leaveTime = time;
+        }
+        // If the leave time is set, do an evaluation of playtime
+        if (players[player].leaveTime) {
+          players[player].playtime += evaluateTime(players[player].joinTime, players[player].leaveTime);
+          // Reset join and leave times after evaluation
+          players[player].joinTime = null;
+          players[player].leaveTime = null;
+        }
+      }
+    });
+    // If any player is still online, evaluate their playtime with the current time
+    Object.keys(players).forEach(player => {
+      if (players[player].joinTime && !players[player].leaveTime) {
+        players[player].playtime += evaluateTime(players[player].joinTime, nowTime);
       }
     });
 
     // Calculate playtime
     const playtimeData = Object.entries(players).map(([player, times]) => {
-      const playtime = times.leaveTime ? (times.leaveTime - times.joinTime) / 1000 : null; // in seconds
-      return { player, playtime };
+      const hours = Math.floor(times.playtime / 3600);
+      const minutes = Math.floor((times.playtime % 3600) / 60);
+      const seconds = times.playtime % 60;
+      const playtime = `${hours}h ${minutes}m ${seconds}s`;
+      const totalSeconds = times.playtime;
+      return { player, playtime, totalSeconds };
     });
 
     res.send({ success: true, data: playtimeData });
