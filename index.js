@@ -21,10 +21,14 @@ app.get('/players', async (req, res) => {
     await rcon.connect();
     const response = await rcon.send('list');
     await rcon.end();
-    res.send({ success: true, response });
+    const messageParts = response.match(/(\d+) of (\d+) players online: (.+)/);
+    const playerCount = messageParts ? parseInt(messageParts[1], 10) : 0;
+    const maxPlayers = messageParts ? parseInt(messageParts[2], 10) : 0;
+    const players = messageParts ? messageParts[3].split(', ') : [];
+    res.send({ success: true, data: { playerCount, maxPlayers, players } });
   } catch (error) {
     console.error('RCON error:', error);
-    res.status(500).send({ success: false, error: error.message });
+    res.status(500).send({ success: false, message: error.message });
   }
 });
 
