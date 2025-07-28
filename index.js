@@ -17,7 +17,7 @@ const SERVER_PATH = process.env.SERVER_PATH;
 // Apply security layer middleware
 app.use(securityLayer); 
 // Initialize RCON connection middleware
-app.use(initializeRcon.bind({ 
+app.use(rcon.initialize.bind({ 
   options: RCON_OPTIONS
 })); 
 
@@ -170,6 +170,9 @@ function minecraftTimeToClock(ticks) {
 }
 
 app.get('/world-time', async (req, res) => {
+  if (!rconClient.connected()) {
+    return res.status(503).send({ success: false, message: 'RCON not connected' });
+  }
   const rcon = rconClient.get();
   try {
     const response = await rcon.send('time query daytime');

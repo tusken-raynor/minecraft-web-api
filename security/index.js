@@ -1,8 +1,7 @@
 const { AUTH_TOKEN, WHITELISTED_IPS } = require('../access.json');
 
 function securityLayer(req, res, next) {
-  const clientIPRaw =
-    req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
+  const clientIPRaw = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
 
   // Normalize for cases like "::ffff:127.0.0.1"
   const clientIP = clientIPRaw.replace('::ffff:', '');

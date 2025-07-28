@@ -2,15 +2,17 @@
 const { Rcon } = require('rcon-client');
 
 let rcon;
+let connected = false;
 
 async function initializeRcon(req, res, next) {
-  if (rcon && rcon.connected) {
+  if (rcon && connected) {
     next(); // If RCON is already connected, just call next
   }
   rcon = new Rcon(this.options);
   try {
     await rcon.connect();
     console.log('RCON connection established');
+    connected = true;
     next(); // Proceed to the next middleware or route handler
   } catch (error) {
     console.error('Failed to connect to RCON:', error);
@@ -23,7 +25,7 @@ function getRcon() {
 }
 
 function isConnected() {
-  return rcon && rcon.connected;
+  return rcon && connected;
 }
 
 module.exports = { 
