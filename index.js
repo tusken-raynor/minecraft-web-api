@@ -1,6 +1,7 @@
 require('dotenv').config(); // ← Load .env variables first
 const express = require('express');
 const { Rcon } = require('rcon-client');
+const securityLayer = require('./security');
 
 const app = express();
 const PORT = 52341;
@@ -11,6 +12,8 @@ const RCON_OPTIONS = {
   password: process.env.RCON_PASSWORD, // ← Now sourced from .env
 };
 const SERVER_PATH = process.env.SERVER_PATH;
+
+app.use(securityLayer); // Apply security layer middleware
 
 app.get('/', (req, res) => {
   res.send('Hello from web API');
