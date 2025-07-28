@@ -36,7 +36,7 @@ app.get('/players', async (req, res) => {
   const playerCount = messageParts ? parseInt(messageParts[1], 10) : 0;
   const maxPlayers = messageParts ? parseInt(messageParts[2], 10) : 0;
   const players = messageParts ? messageParts[3].split(', ') : [];
-  res.send({ success: true, data: { playerCount, maxPlayers, players } });s.status(500).send({ success: false, message: error.message });
+  res.send({ success: true, data: { playerCount, maxPlayers, players } });
 });
 
 app.get('/players/playtime', async (req, res) => {
@@ -163,10 +163,16 @@ function minecraftTimeToClock(ticks) {
   const hours = Math.floor(shiftedTicks / 1000);
   const minutes = Math.floor((shiftedTicks % 1000) * 60 / 1000);
   
-  const hh = String(hours).padStart(2, '0');
+  let hh = String(hours).padStart(2, '0');
   const mm = String(minutes).padStart(2, '0');
+  const amOrPm = hours >= 12 ? 'PM' : 'AM';
+  if (hours > 12) {
+    hh = String(hours - 12).padStart(2, '0');
+  } else if (hours === 0) {
+    hh = '12'; // Midnight case
+  }
 
-  return `${hh}:${mm}`;
+  return `${hh}:${mm} ${amOrPm}`;
 }
 
 app.get('/world-time', async (req, res) => {
@@ -176,15 +182,15 @@ app.get('/world-time', async (req, res) => {
   const rcon = rconClient.get();
   try {
     const response = await rcon.send('time query daytime');
-    const match = response.match(/-?\d+/);
-    if (!match) return res.status(500).send('Could not parse time');
+    const match = response.match(/\d+/);
+    if (!match) return res.status(500).json({ success: false, message: 'Could not parse time' });
 
     const ticks = parseInt(match[0], 10);
     const clockTime = minecraftTimeToClock(ticks);
-    res.json({ ticks, time: clockTime });
+    res.json({ success: true, data: { ticks, time: clockTime } });
   } catch (err) {
     console.error(err);
-    res.status(500).send('Failed to query Minecraft time');
+    res.status(500).json({ success: false, message: 'Failed to query Minecraft time' });
   }
 });
 

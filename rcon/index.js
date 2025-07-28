@@ -6,7 +6,7 @@ let connected = false;
 
 async function initializeRcon(req, res, next) {
   if (rcon && connected) {
-    next(); // If RCON is already connected, just call next
+    return next(); // If RCON is already connected, just call next
   }
   rcon = new Rcon(this.options);
   try {
