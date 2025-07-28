@@ -80,7 +80,7 @@ app.get('/players/playtime', async (req, res) => {
       if (match) {
         const [_, time, player, action] = match;
         if (!players[player]) {
-          players[player] = { joinTime: null, leaveTime: null, playtime: 0 };
+          players[player] = { joinTime: null, leaveTime: null, playtime: 0, isOnline: false };
         }
         if (action === 'joined') {
           players[player].joinTime = time;
@@ -100,6 +100,7 @@ app.get('/players/playtime', async (req, res) => {
     Object.keys(players).forEach(player => {
       if (players[player].joinTime && !players[player].leaveTime) {
         players[player].playtime += evaluateTime(players[player].joinTime, nowTime);
+        players[player].isOnline = true; // Mark player as online
       }
     });
 
@@ -110,7 +111,7 @@ app.get('/players/playtime', async (req, res) => {
       const seconds = times.playtime % 60;
       const playtime = `${hours}h ${minutes}m ${seconds}s`;
       const totalSeconds = times.playtime;
-      return { player, playtime, totalSeconds };
+      return { user: player, playtime, totalSeconds };
     });
 
     res.send({ success: true, data: playtimeData });
