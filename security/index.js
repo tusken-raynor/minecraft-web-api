@@ -1,4 +1,4 @@
-const { AUTH_TOKEN, WHITELISTED_IPS } = require('./access.json');
+const { AUTH_TOKEN, WHITELISTED_IPS } = require('../access.json');
 
 function securityLayer(req, res, next) {
   const clientIPRaw =

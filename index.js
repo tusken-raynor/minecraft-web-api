@@ -1,7 +1,8 @@
 require('dotenv').config(); // ← Load .env variables first
 const express = require('express');
-const { Rcon } = require('rcon-client');
 const securityLayer = require('./security');
+const rconClient = require('./rcon');
+const rcon = require('./rcon');
 
 const app = express();
 const PORT = 52341;
@@ -13,27 +14,29 @@ const RCON_OPTIONS = {
 };
 const SERVER_PATH = process.env.SERVER_PATH;
 
-app.use(securityLayer); // Apply security layer middleware
+// Apply security layer middleware
+app.use(securityLayer); 
+// Initialize RCON connection middleware
+app.use(initializeRcon.bind({ 
+  options: RCON_OPTIONS
+})); 
 
 app.get('/', (req, res) => {
   res.send('Hello from web API');
 });
 
 app.get('/players', async (req, res) => {
-  const rcon = new Rcon(RCON_OPTIONS);
-  try {
-    await rcon.connect();
-    const response = await rcon.send('list');
-    await rcon.end();
-    const messageParts = response.match(/(\d+) of a max of (\d+) players online: (.+)/);
-    const playerCount = messageParts ? parseInt(messageParts[1], 10) : 0;
-    const maxPlayers = messageParts ? parseInt(messageParts[2], 10) : 0;
-    const players = messageParts ? messageParts[3].split(', ') : [];
-    res.send({ success: true, data: { playerCount, maxPlayers, players } });
-  } catch (error) {
-    console.error('RCON error:', error);
-    res.status(500).send({ success: false, message: error.message });
+  if (!rconClient.connected()) {
+    return res.status(503).send({ success: false, message: 'RCON not connected' });
   }
+  const rcon = rconClient.get();
+  const response = await rcon.send('list');
+  await rcon.end();
+  const messageParts = response.match(/(\d+) of a max of (\d+) players online: (.+)/);
+  const playerCount = messageParts ? parseInt(messageParts[1], 10) : 0;
+  const maxPlayers = messageParts ? parseInt(messageParts[2], 10) : 0;
+  const players = messageParts ? messageParts[3].split(', ') : [];
+  res.send({ success: true, data: { playerCount, maxPlayers, players } });s.status(500).send({ success: false, message: error.message });
 });
 
 app.get('/players/playtime', async (req, res) => {
@@ -150,6 +153,35 @@ app.get('/players/playtime', async (req, res) => {
   } catch (error) {
     console.error('Error reading log file:', error);
     res.status(500).send({ success: false, message: error.message });
+  }
+});
+
+function minecraftTimeToClock(ticks) {
+  // Minecraft day starts at 0, which we'll call 6 AM
+  // So shift time by 6000 ticks to align 0 = midnight
+  const shiftedTicks = (ticks + 6000) % 24000;
+  const hours = Math.floor(shiftedTicks / 1000);
+  const minutes = Math.floor((shiftedTicks % 1000) * 60 / 1000);
+  
+  const hh = String(hours).padStart(2, '0');
+  const mm = String(minutes).padStart(2, '0');
+
+  return `${hh}:${mm}`;
+}
+
+app.get('/world-time', async (req, res) => {
+  const rcon = rconClient.get();
+  try {
+    const response = await rcon.send('time query daytime');
+    const match = response.match(/-?\d+/);
+    if (!match) return res.status(500).send('Could not parse time');
+
+    const ticks = parseInt(match[0], 10);
+    const clockTime = minecraftTimeToClock(ticks);
+    res.json({ ticks, time: clockTime });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Failed to query Minecraft time');
   }
 });
 
