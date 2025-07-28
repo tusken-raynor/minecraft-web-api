@@ -31,7 +31,6 @@ app.get('/players', async (req, res) => {
   }
   const rcon = rconClient.get();
   const response = await rcon.send('list');
-  await rcon.end();
   const messageParts = response.match(/(\d+) of a max of (\d+) players online: (.+)/);
   const playerCount = messageParts ? parseInt(messageParts[1], 10) : 0;
   const maxPlayers = messageParts ? parseInt(messageParts[2], 10) : 0;
