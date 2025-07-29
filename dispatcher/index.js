@@ -1,41 +1,54 @@
 const fs = require('fs');
+const utils = require('../utils');
 
 let lastLine = 0;
 let logFile = process.env.SERVER_PATH + '/logs/latest.log';
 
 function parseLogLine(line) {
   // Example patterns, adjust as needed for your log format
-  const playerMessage = /\[.*\]: <(\w+)> (.+)/;
-  const playerJoin = /(\w+) joined the game/;
-  const playerLeave = /(\w+) left the game/;
-  const playerDeath = /(\w+) (was|died|fell|blew up|tried|was slain|was shot|was killed|was burnt|was pricked|was squashed|was impaled|was pummeled|was stung|was poked|was blown up|was slain|was killed|was shot|was fireballed|was squashed|was impaled|was pummeled|was stung|was poked|was blown up|died)/;
+  const playerMessage = /\[(\d+:\d+:\d+)\] \[.*\]: <(\w+)> (.+)/;
+  const playerJoinLeave = /\[(\d+:\d+:\d+)\] \[.+\]: (\w+) (joined|left) the game/;
+  const playerDeath = /\[(\d+:\d+:\d+)\] \[.+\]: (\w+) ((was|died|fell|blew up|tried|was slain|was shot|was killed|was burnt|was pricked|was squashed|was impaled|was pummeled|was stung|was poked|was blown up|was slain|was killed|was shot|was fireballed|was squashed|was impaled|was pummeled|was stung|was poked|was blown up|died).+)/;
+
+  let timestamp = null;
+  let output = '';
 
   if (playerMessage.test(line)) {
-    const [, player, message] = line.match(playerMessage);
-    console.log(`Message from ${player}: ${message}`);
-  } else if (playerJoin.test(line)) {
-    const [, player] = line.match(playerJoin);
-    console.log(`${player} joined the game`);
-  } else if (playerLeave.test(line)) {
-    const [, player] = line.match(playerLeave);
-    console.log(`${player} left the game`);
+    const [, time, player, message] = line.match(playerMessage);
+    timestamp = time;
+    output = `Message from ${player}: ${message}`;
+  } else if (playerJoinLeave.test(line)) {
+    const [, time, player, action] = line.match(playerJoinLeave);
+    timestamp = time;
+    output = `${player} ${action} the game`;
   } else if (playerDeath.test(line)) {
-    console.log(line);
+    const [, time, player, desc] = line.match(playerDeath);
+    timestamp = time;
+    output = `${player} ${desc}`;
   }
+
+  return [timestamp, output];
 }
 
 function watchLog(intervalSeconds = 10) {
+  let utcTimestamp = utils.getUTCTimestamp();
   setInterval(() => {
     fs.readFile(logFile, 'utf8', (err, data) => {
+      console.log(`Reading log file: ${logFile}`);
       if (err) return;
       const lines = data.split('\n');
       // Reset the lastLine value if the file has been reset
       if (lines.length < lastLine) {
         lastLine = 0; // Reset if the log file has been truncated
       }
-      for (let i = lastLine; i < lines.length; i++) {
+      const start = Math.max(lastLine - 5, 0); // Read the last 5 lines just in case
+      for (let i = start; i < lines.length; i++) {
         if (lines[i].trim() !== '') {
-          parseLogLine(lines[i]);
+          const [timestamp, msg] = parseLogLine(lines[i]);
+          if (timestamp && timestamp > utcTimestamp) {
+            utcTimestamp = timestamp; 
+            console.log(`${msg}`);
+          }
         }
       }
       lastLine = lines.length;
