@@ -30,6 +30,10 @@ app.get('/', (req, res) => {
   res.send('Hello from web API');
 });
 
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(`${__dirname}/favicon.ico`);
+});
+
 for (let [path, handler] of Object.entries(endpoints)) {
   if (!path.startsWith('/')) {
     path = `/${path}`;
