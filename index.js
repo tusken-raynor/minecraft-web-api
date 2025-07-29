@@ -21,6 +21,10 @@ app.use(securityLayer);
 app.use(rcon.initialize.bind({ 
   options: RCON_OPTIONS
 })); 
+// Middleware to parse JSON bodies
+app.use(express.json());
+// Middleware to parse x-www-form-urlencoded
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
   res.send('Hello from web API');

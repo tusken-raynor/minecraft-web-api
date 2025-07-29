@@ -1,14 +1,14 @@
-import rcon from "../../rcon";
+const rcon = require('../../rcon');
 
-export default {
+module.exports = {
   get(req, res) {
     // Return html for a simple message submission form
     const username = req.query.username || '';
     res.send(`
       <form method="POST" action="/api/msg/">
-        ${req.query.success ? '<p>Message sent successfully!</p>' : ''}
-        <input type="text" name="username" placeholder="Username" value="${username}" required>
-        <textarea name="message" placeholder="Enter your message" rows="2" required></textarea>
+        ${req.query.success ? '<p>Message sent successfully!</p><br>' : ''}
+        <input type="text" name="username" placeholder="Username" value="${username}" required><br>
+        <textarea name="message" placeholder="Enter your message" rows="2" required></textarea><br>
         <input type="hidden" name="redirect" value="1">
         <button type="submit">Send</button>
       </form>
