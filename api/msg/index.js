@@ -1,4 +1,5 @@
 const rcon = require('../../rcon');
+const utils = require('../../utils');
 
 module.exports = {
   get(req, res) {
@@ -32,6 +33,8 @@ module.exports = {
     username = username.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
 
     rcon.send(`tellraw @a {"text":"<${username}> ${message}","color":"white"}`);
+    // Append the message to the minecraft server logs to ensure it is visible in the console
+    utils.append2ServerLogs(`<${username}> ${message}`);
 
     const doRedirect = req.body.redirect === '1';
     if (doRedirect) {
