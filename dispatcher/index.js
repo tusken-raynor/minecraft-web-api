@@ -34,7 +34,6 @@ function watchLog(intervalSeconds = 10) {
   let utcTimestamp = utils.getUTCTimestamp();
   setInterval(() => {
     fs.readFile(logFile, 'utf8', (err, data) => {
-      console.log(`Reading log file: ${logFile}`);
       if (err) return;
       const lines = data.split('\n');
       // Reset the lastLine value if the file has been reset

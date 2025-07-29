@@ -11,7 +11,6 @@ module.exports = {
     const timestamp = `${hours}:${minutes}:${seconds}`;
     const logMessage = `[${timestamp}] [${context}]: ${message}\n`;
     fs.appendFileSync(logFilePath, logMessage);
-    console.log(`Log message appended: ${logMessage.trim()}`, logFilePath);
   },
   getUTCTimestamp() {
     const now = new Date();
