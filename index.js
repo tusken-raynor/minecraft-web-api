@@ -4,6 +4,7 @@ const securityLayer = require('./security');
 const rconClient = require('./rcon');
 const rcon = require('./rcon');
 const endpoints = require('./api');
+const watch = require('./dispatcher');
 
 const app = express();
 const PORT = 52341;
@@ -223,3 +224,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
 
+// Setup the server event dispatcher module
+watch(10);
