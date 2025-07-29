@@ -3,6 +3,7 @@ const express = require('express');
 const securityLayer = require('./security');
 const rconClient = require('./rcon');
 const rcon = require('./rcon');
+const endpoints = require('./api');
 
 const app = express();
 const PORT = 52341;
@@ -24,6 +25,23 @@ app.use(rcon.initialize.bind({
 app.get('/', (req, res) => {
   res.send('Hello from web API');
 });
+
+for (let [path, handler] of Object.entries(endpoints)) {
+  if (!path.startsWith('/')) {
+    path = `/${path}`;
+  }
+  if (!path.endsWith('/')) {
+    path += '/';
+  }
+  const fullPath = `/api${path}`;
+  for (const key in handler) {
+    const method = key.toLowerCase();
+    if (method in app) {
+      const methodHandler = handler[key];
+      app[method](fullPath, methodHandler);
+    }
+  }
+}
 
 app.get('/players', async (req, res) => {
   if (!rconClient.connected()) {

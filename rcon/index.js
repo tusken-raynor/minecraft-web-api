@@ -31,5 +31,16 @@ function isConnected() {
 module.exports = { 
   initialize: initializeRcon, 
   get: getRcon, 
-  connected: isConnected 
+  connected: isConnected,
+  /**
+   * 
+   * @param {string} command 
+   * @returns 
+   */
+  send: (command) => {
+    if (!rcon || !connected) {
+      throw new Error('RCON not connected');
+    }
+    return rcon.send(command);
+  }
 };
