@@ -30,11 +30,14 @@ function parseLogLine(line) {
   return [timestamp, output];
 }
 
-function watchLog(intervalSeconds = 10) {
+function watchLog(intervalSeconds = 10, aliveCallback = null) {
   let utcTimestamp = utils.getUTCTimestamp();
   setInterval(() => {
     fs.readFile(logFile, 'utf8', (err, data) => {
       if (err) return;
+      if (aliveCallback instanceof Function) {
+        aliveCallback();
+      }
       const lines = data.split('\n');
       // Reset the lastLine value if the file has been reset
       if (lines.length < lastLine) {

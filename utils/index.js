@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 module.exports = {
-  append2ServerLogs(message, context = 'Server thread/INFO') {
+  append2ServerLogs(message, context = 'Server api/INFO') {
     const logFilePath = process.env.SERVER_PATH + '/logs/latest.log';
     // Get UTC HH:MM:SS timestamp
     const now = new Date();
