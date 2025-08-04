@@ -60,7 +60,7 @@ watch(10, () => {
   lastSuccessfulGameEventDispatch = utils.getUTCTimestamp();
 });
 
-app.get('/process/status', (req, res) => {
+app.get('/api/process/status', (req, res) => {
   res.send({
     lastSuccessfulGameEventDispatch,
     rconConnected: rconClient.connected(),

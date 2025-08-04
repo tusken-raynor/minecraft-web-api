@@ -2,7 +2,6 @@ const rconClient = require('../../rcon');
 
 module.exports = {
   async get(req, res) {
-    rcon
     if (!rconClient.connected()) {
       return res.status(503).send({ success: false, message: 'RCON not connected' });
     }

@@ -52,7 +52,7 @@ module.exports = {
           }
           // If the leave time is set, do an evaluation of playtime
           if (players[player].leaveTime) {
-            players[player].playtime += evaluateTime(players[player].joinTime, players[player].leaveTime);
+            players[player].playtime += evaluateTime(players[player].joinTime, players[player].leaveTime, startTime, endTime);
             // Reset join and leave times after evaluation
             players[player].joinTime = null;
             players[player].leaveTime = null;
@@ -85,7 +85,7 @@ module.exports = {
   }
 }
 
-function evaluateTime(joinTime, leaveTime) {
+function evaluateTime(joinTime, leaveTime, startTime = '00:00:00', endTime = '23:59:59') {
   // If both times are not set, return 0
   if (!joinTime && !leaveTime) return 0;
   // If the joinTime is after the end time, return 0
