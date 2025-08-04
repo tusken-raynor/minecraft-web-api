@@ -1,4 +1,4 @@
-const rcon = require('../../rcon');
+const rcon = require('../../../rcon');
 
 module.exports = {
   get(req, res) {
