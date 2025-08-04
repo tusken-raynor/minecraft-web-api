@@ -27,7 +27,7 @@ module.exports = {
     // Escape quotes and backslashes in the username
     username = username.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
 
-    rcon.send(`whitelist add "${username}"`);
+    rcon.send(`whitelist add ${username}`);
 
     const doRedirect = req.body.redirect === '1';
     if (doRedirect) {
