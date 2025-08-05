@@ -37,7 +37,7 @@ app.get('/favicon.ico', (req, res) => {
 });
 
 // Use the registered endpoints create listeners in the express app
-for (let [path, handler] of Object.entries(endpoints)) {
+for (let [path, handler] of Object.entries(endpoints.list)) {
   if (!path.startsWith('/')) {
     path = `/${path}`;
   }

@@ -9,30 +9,31 @@ const whitelistRemove = require("./whitelist/remove");
 const worldTime = require("./world-time");
 
 module.exports = {
-  msg: msg,
-  say: say,
-  players: players,
-  'players/playtime': playtime,
-  'world-time': worldTime,
-  whitelist: whitelist,
-  'whitelist/add': whitelistAdd,
-  'whitelist/remove': whitelistRemove,
-}
+  list: {
+    msg: msg,
+    say: say,
+    players: players,
+    'players/playtime': playtime,
+    'world-time': worldTime,
+    whitelist: whitelist,
+    'whitelist/add': whitelistAdd,
+    'whitelist/remove': whitelistRemove,
+  },
+  getEndPoints: function() {
+    // Get the paths to all the index.js files recursively nested in the ./api using fs
+    const apiDir = `${__dirname}/api`;
 
-module.exports.getEndPoints = function() {
-  // Get the paths to all the index.js files recursively nested in the ./api using fs
-  const apiDir = `${__dirname}/api`;
+    const apiEndpointPaths = getAPIEndpointPaths(apiDir);
 
-  const apiEndpointPaths = getAPIEndpointPaths(apiDir);
+    const endpoints = {};
+    apiEndpointPaths.forEach(path => {
+      const endpointName = path.replace(apiDir + '/', '/api/').replace('/index.js', '');
+      const endpointModule = require(path);
+      endpoints[endpointName] = endpointModule;
+    });
 
-  const endpoints = {};
-  apiEndpointPaths.forEach(path => {
-    const endpointName = path.replace(apiDir + '/', '/api/').replace('/index.js', '');
-    const endpointModule = require(path);
-    endpoints[endpointName] = endpointModule;
-  });
-
-  return endpoints;
+    return endpoints;
+  }
 }
 
 function getAPIEndpointPaths(dir) {
