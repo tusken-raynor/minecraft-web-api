@@ -1,16 +1,22 @@
 const rconClient = require("../../rcon");
+const fs = require('fs');
+
+const SERVER_PATH = process.env.SERVER_PATH;
 
 module.exports = {
   async get(req, res) {
-    if (!rconClient.connected()) {
-      return res.status(503).send({ success: false, message: 'RCON not connected' });
+    // Return a list of the operators by looking at the whitelist.json file
+    const filePath = `${SERVER_PATH}/whitelist.json`;
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send({ success: false, message: 'No whitelist file found' });
     }
-    const rcon = rconClient.get();
-    const response = await rcon.send('whitelist list');
-    const messageParts = response.match(/(\d+) whitelisted player\(s\): (.+)/);
-    const whitelistedCount = messageParts ? parseInt(messageParts[1], 10) : 0;
-    const whitelistedPlayers = messageParts ? messageParts[2].split(', ') : [];
-    res.send({ success: true, data: { whitelistedCount, whitelistedPlayers } });
+    try {
+      const data = fs.readFileSync(filePath, 'utf8');
+      const whitelisted = JSON.parse(data);
+      res.send({ success: true, data: whitelisted });
+    } catch (error) {
+      res.status(500).send({ success: false, message: 'Failed to read whitelist: ' + error.message });
+    }
   },
   async post(req, res) {
     if (!rconClient.connected()) {
