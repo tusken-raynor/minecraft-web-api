@@ -23,7 +23,7 @@ module.exports = {
     // Get the paths to all the index.js files recursively nested in the ./api using fs
     const apiDir = `${__dirname}`;
 
-    const apiEndpointPaths = getAPIEndpointPaths(apiDir);
+    const apiEndpointPaths = getAPIEndpointPaths(apiDir, true);
 
     const endpoints = {};
     apiEndpointPaths.forEach(path => {
@@ -36,15 +36,14 @@ module.exports = {
   }
 }
 
-function getAPIEndpointPaths(dir) {
+function getAPIEndpointPaths(dir, ignoreIndex = false) {
   const paths = [];
   const files = fs.readdirSync(dir);
   for (const file of files) {
     const fullPath = `${dir}/${file}`;
     if (fs.statSync(fullPath).isDirectory()) {
       paths.push(...getAPIEndpointPaths(fullPath)); // Recursively get paths from subdirectories
-    }
-    else if (file === 'index.js') {
+    } else if (!ignoreIndex && file === 'index.js') {
       paths.push(fullPath); // Add the index.js file path
     }
   }
