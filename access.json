@@ -4,5 +4,10 @@
     "127.0.0.1",
     "108.217.120.86",
     "23.27.194.180"
+  ],
+  "PUBLIC_ENDPOINTS": [
+    "/",
+    "/api/players/",
+    "/api/whitelist"
   ]
 }

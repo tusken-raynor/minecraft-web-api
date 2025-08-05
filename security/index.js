@@ -1,6 +1,19 @@
-const { AUTH_TOKEN, WHITELISTED_IPS } = require('../access.json');
+const { AUTH_TOKEN, WHITELISTED_IPS, PUBLIC_ENDPOINTS } = require('../access.json');
 
 function securityLayer(req, res, next) {
+  let endpointPath = req.path;
+  // Make sure the endpoint path starts with a slash and ends with a slash
+  if (!endpointPath.startsWith('/')) {
+    endpointPath = `/${endpointPath}`;
+  }
+  if (!endpointPath.endsWith('/')) {
+    endpointPath += '/';
+  }
+  // If the endpoint is public, skip security checks
+  if (PUBLIC_ENDPOINTS.includes(endpointPath)) {
+    return next();
+  }
+
   const clientIPRaw = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress;
 
   // Normalize for cases like "::ffff:127.0.0.1"
