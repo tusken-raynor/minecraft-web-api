@@ -146,7 +146,7 @@ function setupMessaging() {
       const result = await response.json();
       messageInput.value = '';
       responseEl.textContent = result.message;
-      responseEl.classList.toggle('empty', !!result.message);
+      responseEl.classList.toggle('empty', !result.message);
       responseEl.classList.toggle('error', !result.success);
     } catch (error) {
       console.error('Error sending message:', error);
