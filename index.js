@@ -53,9 +53,6 @@ for (let [path, handler] of Object.entries(api.getEndPoints())) {
   }
 }
 
-console.log('Test endpoints registered:');
-console.log(endpoints.getEndPoints());
-
 
 // Setup the server event dispatcher module
 let lastSuccessfulGameEventDispatch = utils.getUTCTimestamp();
