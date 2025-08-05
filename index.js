@@ -52,6 +52,10 @@ for (let [path, handler] of Object.entries(api.getEndPoints())) {
     }
   }
 }
+// Setup a fallback for undefined api routes
+app.use('/api', (req, res) => {
+  res.status(404).send({ success: false, message: 'API endpoint not found.' });
+});
 
 
 // Setup the server event dispatcher module

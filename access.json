@@ -8,6 +8,6 @@
   "PUBLIC_ENDPOINTS": [
     "/",
     "/api/players/",
-    "/api/whitelist"
+    "/api/whitelist/"
   ]
 }
