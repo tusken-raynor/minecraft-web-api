@@ -42,7 +42,7 @@ module.exports = {
     // Return a list of the operators by looking at the ops.json file
     const filePath = `${SERVER_PATH}/ops.json`;
     if (!fs.existsSync(filePath)) {
-      return res.status(404).send({ success: false, message: 'No operators found' });
+      return res.status(404).send({ success: false, message: 'No operators found. Who is in charge?' });
     }
     try {
       const data = fs.readFileSync(filePath, 'utf8');

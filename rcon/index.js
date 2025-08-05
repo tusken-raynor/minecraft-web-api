@@ -5,6 +5,9 @@ let rcon;
 let connected = false;
 
 async function initializeRcon(req, res, next) {
+  if (!req.path.startsWith('/api')) {
+    return next(); // Skip RCON initialization for non-API routes
+  }
   if (rcon && connected) {
     return next(); // If RCON is already connected, just call next
   }

@@ -31,6 +31,13 @@ function securityLayer(req, res, next) {
   const tokenValid = token === AUTH_TOKEN;
 
   if (ipAllowed || tokenValid) {
+    // Set a Access-Control-Allow-Origin header to allow cross-origin requests
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Set a Access-Control-Allow-Methods header to allow all methods
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    // Set a Access-Control-Allow-Headers header to allow all headers
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth');
+    
     return next();
   }
 

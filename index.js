@@ -27,8 +27,15 @@ app.use(express.json());
 // Middleware to parse x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
+// Serve web page assets from the dashboard directory
 app.get('/', (req, res) => {
-  res.send('Hello from web API');
+  res.sendFile(`${__dirname}/dashboard/index.html`);
+});
+app.get('/main.css', (req, res) => {
+  res.sendFile(`${__dirname}/dashboard/main.css`);
+});
+app.get('/main.js', (req, res) => {
+  res.sendFile(`${__dirname}/dashboard/main.js`);
 });
 
 // Serve the favicon
