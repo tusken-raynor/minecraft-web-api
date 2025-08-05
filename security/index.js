@@ -1,6 +1,8 @@
 const { AUTH_TOKEN, WHITELISTED_IPS, PUBLIC_ENDPOINTS } = require('../access.json');
 
 function securityLayer(req, res, next) {
+  let isAuthorized = false;
+  let isAuthenticated = false;
   // Some endpoints are public when using GET requests
   if (req.method === 'GET') {
     let endpointPath = req.path;
@@ -13,7 +15,7 @@ function securityLayer(req, res, next) {
     }
     // If the endpoint is public, skip security checks
     if (PUBLIC_ENDPOINTS.includes(endpointPath)) {
-      return next();
+      isAuthorized = true;
     }
   }
 
@@ -22,26 +24,38 @@ function securityLayer(req, res, next) {
   // Normalize for cases like "::ffff:127.0.0.1"
   const clientIP = clientIPRaw.replace('::ffff:', '');
 
-  const authHeader = req.headers['x-auth'] || '';
-  const token = authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7)
-    : authHeader;
+  isAuthenticated = WHITELISTED_IPS.includes(clientIP);
 
-  const ipAllowed = WHITELISTED_IPS.includes(clientIP);
-  const tokenValid = token === AUTH_TOKEN;
+  // Attempt to authenticate the request using the AUTH_TOKEN
+  if (!isAuthenticated) {
+    const authHeader = req.headers['x-auth'] || '';
+    const token = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : authHeader;
 
-  if (ipAllowed || tokenValid) {
-    // Set a Access-Control-Allow-Origin header to allow cross-origin requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    // Set a Access-Control-Allow-Methods header to allow all methods
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    // Set a Access-Control-Allow-Headers header to allow all headers
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth');
-    
+    isAuthenticated = token === AUTH_TOKEN;
+  }
+
+  isAuthorized = isAuthorized || isAuthenticated;
+
+  if (isAuthorized) {
+    if (isAuthenticated) {
+      allowCrossOriginActivity(res);
+    }
+
     return next();
   }
 
   return res.status(403).json({ success: false, message: 'Forbidden: Unauthorized access' });
+}
+
+function allowCrossOriginActivity(res) {
+  // Set a Access-Control-Allow-Origin header to allow cross-origin requests
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Set a Access-Control-Allow-Methods header to allow all methods
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  // Set a Access-Control-Allow-Headers header to allow all headers
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth');
 }
 
 module.exports = securityLayer;
