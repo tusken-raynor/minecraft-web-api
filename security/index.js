@@ -43,6 +43,11 @@ function securityLayer(req, res, next) {
       allowCrossOriginActivity(res);
     }
 
+    if (req.method === 'OPTIONS') {
+      // Handle preflight requests
+      return res.status(204).end();
+    }
+
     return next();
   }
 

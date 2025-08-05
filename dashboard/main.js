@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await downloadPageContent();
   // Setup messaging functionality
   setupMessaging();
+  // Setup whitelist management functionality
+  setupWhitelist();
 });
 
 async function downloadPageContent() {
@@ -81,7 +83,7 @@ async function downloadPageContent() {
       whitelisted.data.forEach(player => {
         const color = playerColorKey[player.name] || 'black';
         const listItem = document.createElement('li');
-        listItem.innerHTML = `${player.name} <span class="remove" data-uuid="${player.name}"></span>`;
+        listItem.innerHTML = `${player.name} <span class="remove" data-user="${player.name}"></span>`;
         listItem.style.setProperty('--user-color', color);
         whitelistList.appendChild(listItem);
       });
@@ -99,7 +101,7 @@ async function downloadPageContent() {
       operators.data.forEach(operator => {
         const color = playerColorKey[operator.name] || 'black';
         const listItem = document.createElement('li');
-        listItem.innerHTML = `${operator.name} <span class="deop" data-uuid="${operator.name}"></span>`;
+        listItem.innerHTML = `${operator.name} <span class="deop" data-user="${operator.name}"></span>`;
         listItem.style.setProperty('--user-color', color);
         operatorsList.appendChild(listItem);
       });
@@ -162,6 +164,89 @@ function setupMessaging() {
         responseEl.classList.remove('error');
       }, 5000); // Clear response after 5 seconds
     }
+  });
+}
+
+function setupWhitelist() {
+  const whitelistForm = document.querySelector('#whitelist form');
+  if (!whitelistForm) return;
+
+  const btn = whitelistForm.querySelector('button');
+  const nameInput = whitelistForm.querySelector('input[name="username"]');
+  const responseEl = document.querySelector('#whitelist .response');
+
+  whitelistForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Adding...';
+
+    const name = nameInput.value.trim();
+
+    if (!name) {
+      alert('Username cannot be empty');
+      btn.disabled = false;
+      btn.textContent = 'Add';
+      return;
+    }
+
+    try {
+      const response = await fetch(`${host}/api/whitelist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: name })
+      });
+
+      const result = await response.json();
+      nameInput.value = '';
+      responseEl.textContent = result.message;
+      responseEl.classList.toggle('empty', !result.message);
+      responseEl.classList.toggle('error', !result.success);
+    } catch (error) {
+      console.error('Error adding to whitelist:', error);
+      responseEl.textContent = 'Failed to add player to whitelist. Please try again.';
+      responseEl.classList.add('error');
+      responseEl.classList.remove('empty');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Add';
+    }
+  });
+
+  const removeBtns = document.querySelectorAll('#whitelisted-players .remove');
+  removeBtns.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const username = e.target.dataset.user;
+      if (!username) return;
+
+      if (!confirm(`Are you sure you want to remove ${username} from the whitelist?`)) return;
+
+      try {
+        const response = await fetch(`${host}/api/whitelist/`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
+        const result = await response.json();
+        if (result.success) {
+          e.target.closest('li').remove();
+          responseEl.textContent = result.message;
+          responseEl.classList.toggle('empty', !result.message);
+          responseEl.classList.toggle('error', !result.success);
+        } else {
+          console.error('Error removing from whitelist:', result.message);
+          responseEl.textContent = result.message;
+          responseEl.classList.add('error');
+          responseEl.classList.remove('empty');
+        }
+      } catch (error) {
+        console.error('Error removing from whitelist:', error);
+        responseEl.textContent = 'Failed to remove player from whitelist. Please try again.';
+        responseEl.classList.add('error');
+        responseEl.classList.remove('empty');
+      } finally {
+        setTimeout(() => {
+          responseEl.textContent = '';
+          responseEl.classList.add('empty');
+          responseEl.classList.remove('error');
+        }, 5000); // Clear response after 5 seconds
+      }
+    });
   });
 }
 
