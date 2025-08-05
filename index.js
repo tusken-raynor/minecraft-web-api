@@ -6,6 +6,7 @@ const rcon = require('./rcon');
 const endpoints = require('./api');
 const watch = require('./dispatcher');
 const utils = require('./utils');
+const fs = require('fs');
 
 const app = express();
 const PORT = 52341;
@@ -53,6 +54,28 @@ for (let [path, handler] of Object.entries(endpoints)) {
     }
   }
 }
+
+// Get the paths to all the index.js files recursively nested in the ./api using fs
+const apiDir = `${__dirname}/api`;
+console.log(`Loading API endpoints from ${apiDir}`);
+function getAPIEndpointPaths(dir) {
+  const paths = [];
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const fullPath = `${dir}/${file}`;
+    if (fs.statSync(fullPath).isDirectory()) {
+      paths.push(...getAPIEndpointPaths(fullPath)); // Recursively get paths from subdirectories
+    }
+    else if (file === 'index.js') {
+      paths.push(fullPath); // Add the index.js file path
+    }
+  }
+    
+  return paths;
+}
+const apiPaths = getAPIEndpointPaths(apiDir);
+console.log(`Found ${apiPaths.length} API endpoint files.`);
+console.log(apiPaths);
 
 // Setup the server event dispatcher module
 let lastSuccessfulGameEventDispatch = utils.getUTCTimestamp();
