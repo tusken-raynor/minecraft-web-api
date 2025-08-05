@@ -3,7 +3,7 @@ const express = require('express');
 const securityLayer = require('./security');
 const rconClient = require('./rcon');
 const rcon = require('./rcon');
-const endpoints = require('./api');
+const api = require('./api');
 const watch = require('./dispatcher');
 const utils = require('./utils');
 
@@ -37,19 +37,18 @@ app.get('/favicon.ico', (req, res) => {
 });
 
 // Use the registered endpoints create listeners in the express app
-for (let [path, handler] of Object.entries(endpoints.list)) {
+for (let [path, handler] of Object.entries(api.getEndPoints())) {
   if (!path.startsWith('/')) {
     path = `/${path}`;
   }
   if (!path.endsWith('/')) {
     path += '/';
   }
-  const fullPath = `/api${path}`;
   for (const key in handler) {
     const method = key.toLowerCase();
     if (method in app) {
       const methodHandler = handler[key];
-      app[method](fullPath, methodHandler);
+      app[method](path, methodHandler);
     }
   }
 }
