@@ -21,7 +21,7 @@ module.exports = {
   },
   getEndPoints: function() {
     // Get the paths to all the index.js files recursively nested in the ./api using fs
-    const apiDir = `${__dirname}/api`;
+    const apiDir = `${__dirname}`;
 
     const apiEndpointPaths = getAPIEndpointPaths(apiDir);
 
