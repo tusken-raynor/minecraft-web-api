@@ -12,7 +12,7 @@ module.exports = {
     }
 
     // Handle whitelist remove submission
-    let username = req.body.username;
+    let username = req.body?.username;
     if (!username) {
       return res.status(400).send({ success: false, message: 'Username is required' });
     }

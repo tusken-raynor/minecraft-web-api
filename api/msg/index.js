@@ -21,11 +21,11 @@ module.exports = {
     }
 
     // Handle message submission
-    let message = req.body.message;
+    let message = req.body?.message;
     if (!message) {
       return res.status(400).send({ success: false, message: 'Message is required' });
     }
-    let username = req.body.username || 'Anonymous';
+    let username = req.body?.username || 'Anonymous';
 
     // Escape quotes and backslashes in the message
     message = message.replace(/"/g, '\\"').replace(/\\/g, '\\\\');

@@ -8,7 +8,7 @@ module.exports = {
     if (!rconClient.connected()) {
       return res.status(503).send({ success: false, message: 'RCON not connected' });
     }
-    const username = req.body.username;
+    const username = req.body?.username;
     if (!username) {
       return res.status(400).send({ success: false, message: 'Username is required' });
     }
@@ -25,7 +25,7 @@ module.exports = {
     if (!rconClient.connected()) {
       return res.status(503).send({ success: false, message: 'RCON not connected' });
     }
-    const username = req.body.username;
+    const username = req.body?.username;
     if (!username) {
       return res.status(400).send({ success: false, message: 'Username is required' });
     }

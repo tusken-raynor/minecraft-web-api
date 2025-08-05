@@ -17,7 +17,7 @@ module.exports = {
     }
 
     // Handle message submission
-    let message = req.body.message;
+    let message = req.body?.message;
     if (!message) {
       return res.status(400).send({ success: false, message: 'Message is required' });
     }
