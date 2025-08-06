@@ -51,7 +51,12 @@ function securityLayer(req, res, next) {
     return next();
   }
 
-  return res.status(403).json({ success: false, message: 'Forbidden: Unauthorized access' });
+  if (req.path.startsWith('/api/')) {
+    // If the request is to an API endpoint and not authorized, return a 403 Forbidden json response
+    return res.status(403).json({ success: false, message: 'Forbidden: Unauthorized access' });
+  }
+
+  return res.status(403).send('Forbidden: Unauthorized access');
 }
 
 function allowCrossOriginActivity(res) {
