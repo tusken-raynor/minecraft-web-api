@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMessaging();
   // Setup whitelist management functionality
   setupWhitelist();
+  // Setup operator management functionality
+  setupOperators();
 });
 
 async function downloadPageContent() {
@@ -237,6 +239,89 @@ function setupWhitelist() {
       } catch (error) {
         console.error('Error removing from whitelist:', error);
         responseEl.textContent = 'Failed to remove player from whitelist. Please try again.';
+        responseEl.classList.add('error');
+        responseEl.classList.remove('empty');
+      } finally {
+        setTimeout(() => {
+          responseEl.textContent = '';
+          responseEl.classList.add('empty');
+          responseEl.classList.remove('error');
+        }, 5000); // Clear response after 5 seconds
+      }
+    });
+  });
+}
+
+function setupOperators() {
+  const operatorsForm = document.querySelector('#operators form');
+  if (!operatorsForm) return;
+
+  const btn = operatorsForm.querySelector('button');
+  const nameInput = operatorsForm.querySelector('input[name="username"]');
+  const responseEl = document.querySelector('#operators .response');
+
+  operatorsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Adding...';
+
+    const name = nameInput.value.trim();
+
+    if (!name) {
+      alert('Username cannot be empty');
+      btn.disabled = false;
+      btn.textContent = 'Add';
+      return;
+    }
+
+    try {
+      const response = await fetch(`${host}/api/operators`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: name })
+      });
+
+      const result = await response.json();
+      nameInput.value = '';
+      responseEl.textContent = result.message;
+      responseEl.classList.toggle('empty', !result.message);
+      responseEl.classList.toggle('error', !result.success);
+    } catch (error) {
+      console.error('Error adding operator:', error);
+      responseEl.textContent = 'Failed to add operator. Please try again.';
+      responseEl.classList.add('error');
+      responseEl.classList.remove('empty');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Add';
+    }
+  });
+
+  const deopBtns = document.querySelectorAll('#operators-list .deop');
+  deopBtns.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const username = e.target.dataset.user;
+      if (!username) return;
+
+      if (!confirm(`Are you sure you want to remove ${username} from operators?`)) return;
+
+      try {
+        const response = await fetch(`${host}/api/operators/`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
+        const result = await response.json();
+        if (result.success) {
+          e.target.closest('li').remove();
+          responseEl.textContent = result.message;
+          responseEl.classList.toggle('empty', !result.message);
+          responseEl.classList.toggle('error', !result.success);
+        } else {
+          console.error('Error removing operator:', result.message);
+          responseEl.textContent = result.message;
+          responseEl.classList.add('error');
+          responseEl.classList.remove('empty');
+        }
+      } catch (error) {
+        console.error('Error removing operator:', error);
+        responseEl.textContent = 'Failed to remove operator. Please try again.';
         responseEl.classList.add('error');
         responseEl.classList.remove('empty');
       } finally {

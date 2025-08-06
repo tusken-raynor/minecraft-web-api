@@ -6,7 +6,7 @@
     "23.27.194.180"
   ],
   "PUBLIC_ENDPOINTS": [
-    "/",
+    "/api/world-time/",
     "/api/players/",
     "/api/whitelist/"
   ]
