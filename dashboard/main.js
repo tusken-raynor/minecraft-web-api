@@ -2,7 +2,9 @@ const host = 'http://mc.mooseengine.com:52341';
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load the main content of the page
-  await downloadPageContent();
+  const { playtimes } = await downloadPageContent();
+  // Setup general information section
+  setupGeneral(playtimes);
   // Setup messaging functionality
   setupMessaging();
   // Setup whitelist management functionality
@@ -59,7 +61,14 @@ async function downloadPageContent() {
       // Create a simple bar graph
       playtimeGraph.innerHTML = playtimes.data.toSorted((a, b) => b.totalSeconds - a.totalSeconds).map(player => {
         const color = playerColorKey[player.user] || 'gray';
-        return `<div class="bar" style="--alpha: ${player.totalSeconds / secondsIn24Hours}; --user-color: ${color};" title="${player.user}: ${player.playtime}"><span>${player.user}</span></div>`;
+        return `
+          <div 
+            class="bar${player.isOnline ? ' online' : ''}" 
+            style="--alpha: ${player.totalSeconds / secondsIn24Hours}; --user-color: ${color};" 
+          >
+            <span class="cs-user">${player.user}</span>
+            <span class="cs-pt">${secondsToTime(player.totalSeconds)}</span>
+          </div>`;
       }).join('');
     } else {
       playtimeGraph.classList.add('hidden');
@@ -112,6 +121,34 @@ async function downloadPageContent() {
       operatorsList.innerHTML = `<li class="error">${operators.message}</li>`;
     }
   }
+
+  return { playtimes: playtimes.data }
+}
+
+function setupGeneral(playtimes) {
+  const playtimeSecondsMap = {};
+  for (const player of playtimes) {
+    playtimeSecondsMap[player.user] = player.totalSeconds;
+  }
+
+  const bars = document.querySelectorAll('#utc-graph .bar.online');
+
+  // Update the players' playtime in the playtime graph
+  let extraSeconds = 0;
+  setInterval(() => {
+    extraSeconds += 1;
+    // Only run the update code if the #general section is visible
+    if (location.hash === '#general' || location.hash === '') {
+      bars.forEach(bar => {
+        const user = bar.querySelector('.cs-user').textContent;
+        const playtimeEl = bar.querySelector('.cs-pt');
+        const playtime = playtimeSecondsMap[user] + extraSeconds;
+        const timeStr = secondsToTime(playtime);
+        playtimeEl.textContent = timeStr;
+        bar.style.setProperty('--alpha', playtime / 86400); // Update the alpha value based on the new playtime
+      });
+    }
+  }, 1000);
 }
 
 function setupMessaging() {
@@ -380,4 +417,12 @@ function shuffleArray(array) {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+
+function secondsToTime(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
