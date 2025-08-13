@@ -7,11 +7,14 @@ const TARGET_COMBOS = [
   ["1nkDrinker", "ChubbyPolarBears"],
   ["1nkDrinker", "darkangels1245"],
   ["1nkDrinker", "ChubbyPolarBears", "darkangels1245"]
+  ["1nkDrinker", "TuskenRaynor"],
 ];
 
-const THROTTLE_PERCENTAGE = 20; // CPU limit percentage
+const THROTTLE_PERCENTAGE = 4; // CPU limit percentage
 
 let throttled = false;
+let processID = null;
+let checkCount = 0;
 
 function arraysEqual(a, b) {
   return a.length === b.length && a.every(v => b.includes(v));
@@ -60,6 +63,7 @@ async function checkPlayersAndThrottle() {
   if (shouldThrottle && !throttled) {
     getJavaPid(pid => {
       if (pid) {
+        processID = pid;
         throttleJava(pid);
         throttled = true;
       }
@@ -68,6 +72,20 @@ async function checkPlayersAndThrottle() {
     removeThrottle();
     throttled = false;
   }
+
+  // If the check count has reach 100, make sure the process id is still valid
+  if (checkCount >= 100) {
+    getJavaPid(pid => {
+      if (pid !== processID) {
+        console.log("Process ID has changed, resetting throttle state.");
+        removeThrottle();
+        throttled = false;
+        processID = null;
+      }
+    });
+    checkCount = 0; // Reset the check count
+  }
+  checkCount++;
 }
 
 module.exports = checkPlayersAndThrottle;
