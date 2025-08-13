@@ -10,7 +10,7 @@ const TARGET_COMBOS = [
   ["1nkDrinker", "TuskenRaynor"],
 ];
 
-const THROTTLE_PERCENTAGE = 4; // CPU limit percentage
+const THROTTLE_PERCENTAGE = 7; // CPU limit percentage
 
 let throttled = false;
 let processID = null;
