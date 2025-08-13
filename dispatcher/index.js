@@ -1,6 +1,6 @@
 const fs = require('fs');
 const utils = require('../utils');
-const wtjptm = require('./wtjptm');
+const wtjptm = require('../wtjptm');
 
 let lastLine = 0;
 let logFile = process.env.SERVER_PATH + '/logs/latest.log';

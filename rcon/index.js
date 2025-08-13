@@ -4,7 +4,21 @@ const { Rcon } = require('rcon-client');
 let rcon;
 let connected = false;
 
-async function initializeRcon(req, res, next) {
+async function initializeRcon() {
+  if (rcon && connected) {
+    return; // If RCON is already connected, just return
+  }
+  rcon = new Rcon(this.options);
+  try {
+    await rcon.connect();
+    console.log('RCON connection established');
+    connected = true;
+  } catch (error) {
+    console.error('Failed to connect to RCON:', error);
+  }
+}
+
+async function initializeRconMiddleware(req, res, next) {
   if (!req.path.startsWith('/api')) {
     return next(); // Skip RCON initialization for non-API routes
   }
@@ -32,7 +46,8 @@ function isConnected() {
 }
 
 module.exports = { 
-  initialize: initializeRcon, 
+  initialize: initializeRcon,
+  initializeMiddleware: initializeRcon, 
   get: getRcon, 
   connected: isConnected,
   /**

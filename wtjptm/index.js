@@ -1,5 +1,5 @@
 const { exec } = require("child_process");
-const rconClient = require('./rcon');
+const rconClient = require('../rcon');
 
 // Target usernames combos
 const TARGET_COMBOS = [

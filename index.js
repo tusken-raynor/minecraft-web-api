@@ -1,4 +1,4 @@
-require('dotenv').config(); // ← Load .env variables first
+require('dotenv').config({ quiet: true }); // ← Load .env variables first
 const express = require('express');
 const securityLayer = require('./security');
 const rconClient = require('./rcon');
@@ -16,10 +16,13 @@ const RCON_OPTIONS = {
   password: process.env.RCON_PASSWORD, // ← Now sourced from .env
 };
 
+// Do initial RCON connection
+rconClient.initialize.call(RCON_OPTIONS)
+
 // Apply security layer middleware
 app.use(securityLayer); 
 // Initialize RCON connection middleware
-app.use(rcon.initialize.bind({ 
+app.use(rcon.initializeMiddleware.bind({ 
   options: RCON_OPTIONS
 })); 
 // Middleware to parse JSON bodies
