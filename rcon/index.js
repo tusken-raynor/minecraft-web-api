@@ -42,12 +42,12 @@ function getRcon() {
 }
 
 function isConnected() {
-  return rcon && connected;
+  return !!(rcon && connected);
 }
 
 module.exports = { 
   initialize: initializeRcon,
-  initializeMiddleware: initializeRcon, 
+  initializeMiddleware: initializeRconMiddleware, 
   get: getRcon, 
   connected: isConnected,
   /**

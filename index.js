@@ -17,7 +17,7 @@ const RCON_OPTIONS = {
 };
 
 // Do initial RCON connection
-rconClient.initialize.call(RCON_OPTIONS)
+rconClient.initialize.call({ options: RCON_OPTIONS});
 
 // Apply security layer middleware
 app.use(securityLayer); 
@@ -62,13 +62,9 @@ for (let [path, handler] of Object.entries(api.getEndPoints())) {
     }
   }
 }
-// Setup a fallback for undefined api routes
-app.use('/api', (req, res) => {
-  res.status(404).send({ success: false, message: 'API endpoint not found.' });
-});
 
 
-// Setup the server event dispatcher module
+// // Setup the server event dispatcher module
 let lastSuccessfulGameEventDispatch = utils.getUTCTimestamp();
 watch(10, () => {
   lastSuccessfulGameEventDispatch = utils.getUTCTimestamp();
@@ -79,6 +75,11 @@ app.get('/api/process/status', (req, res) => {
     lastSuccessfulGameEventDispatch,
     rconConnected: rconClient.connected(),
   });
+});
+
+// Setup a fallback for undefined api routes
+app.use('/api', (req, res) => {
+  res.status(404).send({ success: false, message: 'API endpoint not found.' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

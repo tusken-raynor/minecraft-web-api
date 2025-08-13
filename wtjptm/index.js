@@ -18,9 +18,18 @@ function arraysEqual(a, b) {
 }
 
 function getJavaPid(callback) {
-  exec("pgrep -f 'java.*minecraft'", (err, stdout) => {
+  exec("ps aux | grep java", (err, stdout) => {
     if (err || !stdout) return callback(null);
-    callback(stdout.trim());
+
+    // Split output into lines and look for the one containing 'server.jar'
+    const lines = stdout.split("\n");
+    const serverLine = lines.find(line => line.includes("server.jar") && !line.includes("grep"));
+    if (!serverLine) return callback(null);
+
+    // The PID is the second column in ps aux output
+    const parts = serverLine.trim().split(/\s+/);
+    const pid = parts[1];
+    callback(pid);
   });
 }
 
