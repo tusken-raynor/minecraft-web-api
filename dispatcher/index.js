@@ -1,5 +1,6 @@
 const fs = require('fs');
 const utils = require('../utils');
+const wtjptm = require('./wtjptm');
 
 let lastLine = 0;
 let logFile = process.env.SERVER_PATH + '/logs/latest.log';
@@ -55,6 +56,7 @@ function watchLog(intervalSeconds = 10, aliveCallback = null) {
       }
       lastLine = lines.length;
     });
+    wtjptm();
   }, intervalSeconds * 1000);
 }
 
