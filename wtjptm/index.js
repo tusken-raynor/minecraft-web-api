@@ -50,6 +50,8 @@ function removeThrottle() {
 
 async function checkPlayersAndThrottle() {
   if (!rconClient.connected()) {
+    // Attempt to RCON connect and try again on the next pulse
+    await rconClient.initialize();
     return;
   }
   
