@@ -14,7 +14,6 @@ const THROTTLE_PERCENTAGE = 3; // CPU limit percentage
 
 let throttled = false;
 let processID = null;
-let checkCount = 0;
 
 function arraysEqual(a, b) {
   return a.length === b.length && a.every(v => b.includes(v));
@@ -46,6 +45,7 @@ function throttleJava(pid) {
 function removeThrottle() {
   console.log("Removing CPU throttle");
   exec("pkill -f cpulimit", () => {});
+  processID = null;
 }
 
 async function checkPlayersAndThrottle() {
@@ -73,19 +73,6 @@ async function checkPlayersAndThrottle() {
     throttled = false;
   }
 
-  // If the check count has reach 5, make sure the process id is still valid
-  if (checkCount >= 5) {
-    getJavaPid(pid => {
-      if (pid !== processID) {
-        console.log("Process ID has changed, resetting throttle state.");
-        removeThrottle();
-        throttled = false;
-        processID = null;
-      }
-    });
-    checkCount = 0; // Reset the check count
-  }
-  checkCount++;
 }
 
 module.exports = checkPlayersAndThrottle;
