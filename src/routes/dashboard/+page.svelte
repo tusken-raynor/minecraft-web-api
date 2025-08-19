@@ -55,7 +55,7 @@
   <h3 class="notable-fnt">Playtime Graph <span class="lato-fnt">(UTC Day)</span></h3>
   <div id="utc-graph">
     {#each playtimeData.toSorted((a, b) => b.totalSeconds - a.totalSeconds) as { user, totalSeconds, isOnline }}
-      {@const userSeconds = totalSeconds + extraSecs}
+      {@const userSeconds = isOnline ? totalSeconds + extraSecs : totalSeconds}
       <div class="bar {isOnline ? 'online' : ''}" style="--alpha:{userSeconds / 86400}; --user-color:{userIndex[user].color}">
         <span class="cs-user">{user}</span>
         <span class="cs-pt">{toTimeStamp(userSeconds)}</span>
