@@ -17,6 +17,7 @@ export default class DummyRcon {
     [/^whitelist list$/, 'There are 9 whitelisted player(s): PogoPenguin, RewbenSandwich, darn, TuskenRaynor, PlumSquirrel, MrPieBrain, cookiedoughyum2, KstarDarn, SF121'],
     [/^op (.+)$/, 'Made $1 a server operator'],
     [/^deop (.+)$/, 'Made $1 no longer a server operator'],
+    [/^kick (.+)(\s.+)?$/, 'Kicked $1 from the server'],
   ]);
 
   constructor(private options: RconOptions) {

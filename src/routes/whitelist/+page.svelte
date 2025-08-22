@@ -6,25 +6,37 @@
   let whitelisted: Array<{ name: string; uuid?: string; }> = [];
 
   $: playerList = whitelisted.map((x) => ({ ...x, color: uuidColor(x.uuid || x.name) }));
+  let usernameInput: HTMLInputElement | null;
 
   function uuidColor(uuid: string): string {
     const { r, g, b } = utils.uuidToColor(uuid);
     return `rgb(${r}, ${g}, ${b})`;
   }
 
-  function onSubmit(e: Event) {
+  async function onSubmit(e: Event) {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const username = formData.get('username')?.toString().trim();
     if (!username) return;
 
-    fetch('/api/whitelist/', {
+    const response = await fetch('/api/whitelist/', {
       method: 'POST',
       body: JSON.stringify({ username }),
       headers: {
         'Content-Type': 'application/json'
       }
-    });
+    }).then(r => r.json());
+
+    //Toast the message
+    console.log(response);
+
+    // The data from response should have the updated whitelist
+    if (response.success) {
+      whitelisted = response.data;
+      if (usernameInput) {
+        usernameInput.value = '';
+      }
+    }
   }
 
   async function onRemove(player: string) {
@@ -39,11 +51,24 @@
     }).then(r => r.json());
     // Toast the message
     console.log(response);
-    // Now fetch the whitelisted players to get an updated list
-    const res = await fetch('/api/whitelist/').then(r => r.json());
-    if (res.success) {
-      whitelisted = res.data;
+
+    // The data from response should have the updated whitelist
+    if (response.success) {
+      whitelisted = response.data;
     }
+  }
+
+  async function onKick(player: string) {
+    if (!player) return;
+    const response = await fetch('/api/kick/', {
+      method: 'POST',
+      body: JSON.stringify({ username: player }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }).then(r => r.json());
+    // Toast the message
+    console.log(response);
   }
 
   onMount(() => {
@@ -61,13 +86,14 @@
           <li style="--user-color: {player.color}">
             <span>{player.name}</span>
             <button class="remove std-btn" onclick={() => onRemove(player.name)}>Remove</button>
+            <button class="kick std-btn" onclick={() => onKick(player.name)}>Kick</button>
           </li>
         {/each}
       {/if}
     </ul>
   </div>
   <form method="POST" action="/api/whitelist/" onsubmit={onSubmit}>
-    <input class="std-input" type="text" name="username" placeholder="Enter username" required>
+    <input class="std-input" type="text" name="username" bind:this={usernameInput} placeholder="Enter username" required>
     <button class="std-btn" type="submit">Add to Whitelist</button>
   </form>
 </section>
@@ -123,22 +149,23 @@
     background-color: var(--user-color);
   }
 
-  #whitelisted-players .remove {
-    appearance: none;
-    -moz-appearance: none;
-    border: none;
-    background-color: #9c2222;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    cursor: pointer;
-    color: #fff;
-    flex-shrink: 0;
-    font-size: 14px;
-    margin-left: auto;
-    @media (max-width: 400px) {
-      font-size: 11px;
+  #whitelisted-players {
+    .remove {
+      background-color: #898989;
+      flex-shrink: 0;
+      font-size: 14px;
+      margin-left: auto;
+      @media (max-width: 400px) {
+        font-size: 11px;
+      }
+    }
+    .kick {
+      background-color: var(--color-error);
+      flex-shrink: 0;
+      font-size: 14px;
+      @media (max-width: 400px) {
+        font-size: 11px;
+      }
     }
   }
 

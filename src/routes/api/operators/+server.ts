@@ -15,7 +15,8 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const response = await minecraftServer.op(username);
     const success = !!response.raw.match(/Made .+? a server operator/);
-    return json({ success, message: response.raw }, { status: 200 });
+    const { data } = await minecraftServer.operatorsList();
+    return json({ success, message: response.raw, data }, { status: 200 });
   } catch (error: any) {
     return json({ success: false, message: 'Failed to add operator: ' + error.message }, { status: 500 });
   }
@@ -34,7 +35,8 @@ export const DELETE: RequestHandler = async ({ request }) => {
   try {
     const response = await minecraftServer.deop(username);
     const success = !!response.raw.match(/Made .+? no longer a server operator/);
-    return json({ success, message: response.raw }, { status: 200 });
+    const { data } = await minecraftServer.operatorsList();
+    return json({ success, message: response.raw, data }, { status: 200 });
   } catch (error: any) {
     return json({ success: false, message: 'Failed to remove operator: ' + error.message }, { status: 500 });
   }

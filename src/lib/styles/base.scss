@@ -46,6 +46,8 @@ main {
     color: var(--txt-main);
     padding: 0.5em 2em 0.5em 1em;
     transition: border-color 0.15s linear;
+    position: relative;
+    z-index: 3;
   }
   &::after {
     content: "";
@@ -81,6 +83,7 @@ main {
   padding: 0.5em 1em;
   transition: border-color 0.15s linear;
   font: 400 16px/1.2 "Lato", sans-serif;
+  box-sizing: border-box;
 
   &:hover,
   &:focus {

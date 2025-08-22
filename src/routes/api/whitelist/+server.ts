@@ -26,7 +26,8 @@ export const POST = async ({ request }) => {
   try {
     const response = await minecraftServer.whitelistAdd(username);
     const success = !!response.raw.match(/Added .+? to the whitelist/);
-    return json({ success, message: response.raw }, { status: 200 });
+    const { data } = await minecraftServer.whitelistList();
+    return json({ success, message: response.raw, data }, { status: 200 });
   } catch (error) {
     console.error('Error adding to whitelist:', error);
     return json({ success: false, message: 'Failed to add player to whitelist' }, { status: 500 });
@@ -48,8 +49,9 @@ export const DELETE = async ({ request }) => {
 
   try {
     const response = await minecraftServer.whitelistRemove(username);
+    const { data } = await minecraftServer.whitelistList();
     const success = !!response.raw.match(/Removed .+? from the whitelist/);
-    return json({ success, message: response.raw }, { status: 200 });
+    return json({ success, message: response.raw, data }, { status: 200 });
   } catch (error) {
     console.error('Error removing from whitelist:', error);
     return json({ success: false, message: 'Failed to remove player from whitelist' }, { status: 500 });

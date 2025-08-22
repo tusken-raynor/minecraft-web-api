@@ -1,35 +1,49 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import type { MinecraftServerOperator } from '$lib/minecraft-server/types';
   import utils from '$lib/utils';
   import { onMount } from 'svelte';
 
   let operators: Array<{ name: string; uuid?: string; }> = [];
 
   $: playerList = operators.map((x) => ({ ...x, color: uuidColor(x.uuid || x.name) }));
+  let usernameInput: HTMLInputElement | null;
 
   function uuidColor(uuid: string): string {
     const { r, g, b } = utils.uuidToColor(uuid);
     return `rgb(${r}, ${g}, ${b})`;
   }
 
-  function onSubmit(e: Event) {
+  async function onSubmit(e: Event) {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const username = formData.get('username')?.toString().trim();
     if (!username) return;
 
-    fetch('/api/operators/', {
+    type APIResponse = { success: boolean; message: string; data: MinecraftServerOperator[] };
+    const response: APIResponse = await fetch('/api/operators/', {
       method: 'POST',
       body: JSON.stringify({ username }),
       headers: {
         'Content-Type': 'application/json'
       }
-    });
+    }).then(r => r.json());
+
+    // Toast the message
+    console.log(response);
+
+    if (response.success) {
+      operators = response.data;
+      if (usernameInput) {
+        usernameInput.value = '';
+      }
+    }
   }
 
   async function onRemove(player: string) {
     if (!player) return;
     if (!confirm(`Are you sure you want to remove ${player} from the operator?`)) return;
+
     const response = await fetch('/api/operators/', {
       method: 'DELETE',
       body: JSON.stringify({ username: player }),
@@ -37,12 +51,12 @@
         'Content-Type': 'application/json'
       }
     }).then(r => r.json());
+
     // Toast the message
     console.log(response);
-    // Now fetch the operators players to get an updated list
-    const res = await fetch('/api/operators/').then(r => r.json());
-    if (res.success) {
-      operators = res.data;
+
+    if (response.success) {
+      operators = response.data;
     }
   }
 
@@ -69,7 +83,7 @@
     </ul>
   </div>
   <form method="POST" action="/api/operator/" onsubmit={onSubmit}>
-    <input class="std-input" type="text" name="username" placeholder="Enter username" required>
+    <input class="std-input" type="text" name="username" bind:this={usernameInput} placeholder="Enter username" required>
     <button class="std-btn" type="submit">Add Operator</button>
   </form>
 </section>
@@ -129,7 +143,7 @@
     appearance: none;
     -moz-appearance: none;
     border: none;
-    background-color: #9c2222;
+    background-color: #898989;
     display: flex;
     align-items: center;
     justify-content: center;
