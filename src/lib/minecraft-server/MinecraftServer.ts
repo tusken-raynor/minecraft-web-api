@@ -38,7 +38,7 @@ export default class MinecraftServer {
     return this.connected;
   }
 
-  private async runCommand(command: string): Promise<MinecraftCommandResponse> {
+  async runCommand(command: string): Promise<MinecraftCommandResponse> {
     await this.connect();
     try {
       const raw = await this.rcon.send(command);

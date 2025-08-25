@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Toast from "$lib/components/Toast.svelte";
   import "$lib/styles/main.scss";
   import { onMount, onDestroy } from 'svelte';
 
@@ -53,6 +54,9 @@
   </button>
 </header>
 <main>{@render children?.()}</main>
+<footer>
+  <Toast />
+</footer>
 
 <style lang="scss">
   header {

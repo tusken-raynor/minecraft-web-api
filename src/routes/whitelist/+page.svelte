@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
+  import { showToast } from '$lib/stores';
   import utils from '$lib/utils';
   import { onMount } from 'svelte';
 
@@ -27,8 +28,14 @@
       }
     }).then(r => r.json());
 
-    //Toast the message
-    console.log(response);
+    // Toast the message
+    showToast(
+      response.success ?
+        { title: "Player whitelisted", message: `${username} has been added to the whitelist.` } :
+        { title: "Error whitelisting player", message: response.message || "Unknown error" },
+      response.success ? 'success' : 'error',
+      5000
+    );
 
     // The data from response should have the updated whitelist
     if (response.success) {
@@ -50,7 +57,13 @@
       }
     }).then(r => r.json());
     // Toast the message
-    console.log(response);
+    showToast(
+      response.success ?
+        { title: "Player removed from whitelist", message: `${player} has been removed from the whitelist.` } :
+        { title: "Error", message: response.message || "Unknown error" },
+      response.success ? 'success' : 'error',
+      5000
+    );
 
     // The data from response should have the updated whitelist
     if (response.success) {
@@ -68,7 +81,13 @@
       }
     }).then(r => r.json());
     // Toast the message
-    console.log(response);
+    showToast(
+      response.success ?
+        { title: "Player kicked", message: `${player} has been kicked from the server.` } :
+        { title: "Error", message: response.message || "Unknown error" },
+      response.success ? 'success' : 'error',
+      5000
+    );
   }
 
   onMount(() => {

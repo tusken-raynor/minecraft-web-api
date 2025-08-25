@@ -8,6 +8,7 @@
   "PUBLIC_ENDPOINTS": [
     "/api/world-time/",
     "/api/players/",
-    "/api/whitelist/"
+    "/api/whitelist/",
+    "/api/begin-pulse/"
   ]
 }

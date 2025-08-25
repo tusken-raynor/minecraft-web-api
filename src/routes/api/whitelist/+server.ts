@@ -30,7 +30,7 @@ export const POST = async ({ request }) => {
     return json({ success, message: response.raw, data }, { status: 200 });
   } catch (error) {
     console.error('Error adding to whitelist:', error);
-    return json({ success: false, message: 'Failed to add player to whitelist' }, { status: 500 });
+    return json({ success: false, message: 'Failed to add player to whitelist: ' + (error as Error).message }, { status: 500 });
   }
 };
 
@@ -54,6 +54,6 @@ export const DELETE = async ({ request }) => {
     return json({ success, message: response.raw, data }, { status: 200 });
   } catch (error) {
     console.error('Error removing from whitelist:', error);
-    return json({ success: false, message: 'Failed to remove player from whitelist' }, { status: 500 });
+    return json({ success: false, message: 'Failed to remove player from whitelist: ' + (error as Error).message }, { status: 500 });
   }
 };
