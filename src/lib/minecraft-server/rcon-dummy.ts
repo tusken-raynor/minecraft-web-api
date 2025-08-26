@@ -5,10 +5,12 @@ export interface RconOptions {
   timeout?: number;
 }
 
+type RCONResponse = string | (() => string);
+
 export default class DummyRcon {
-  private responses: Map<RegExp, string> = new Map([
+  private responses: Map<RegExp, RCONResponse> = new Map([
     [/^list$/, 'There are 2 of a max of 20 players online: PlumSquirrel, SF121'],
-    [/^time query daytime$/, 'The time is 3868'],
+    [/^time query daytime$/, (() => `The time is ${(Date.now() / 50) % 24000}`) as any],
     [/^time set (.+)$/, 'Time set to $1'],
     [/^say (.+)$/, 'Hello from the server!'],
     [/^help$/, 'Available commands: list, time query, say hello, help'],
@@ -37,7 +39,7 @@ export default class DummyRcon {
     const entry = Array.from(this.responses.entries()).find(([regex]) => regex.test(command));
     if (entry) {
       const [regex, response] = entry;
-      return command.replace(regex, response);
+      return command.replace(regex, typeof response === 'function' ? response() : response);
     }
     return `Unknown command: ${command}`;
   }

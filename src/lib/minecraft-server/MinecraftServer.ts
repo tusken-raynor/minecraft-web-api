@@ -5,6 +5,7 @@ import RconDummy from './rcon-dummy';
 import { env } from '$env/dynamic/private';
 import fs from "fs";
 import playtime from './playtime';
+import utils from '$lib/utils';
 
 export default class MinecraftServer {
   private rcon!: Rcon | RconDummy;
@@ -181,7 +182,21 @@ export default class MinecraftServer {
 
   async playtimeGet(startTime?: string, endTime?: string): Promise<MinecraftCommandResponse<Array<{ user: string; playtime: string; totalSeconds: number; isOnline: boolean; }>>> {
     try {
-      const playtimeData = await playtime(startTime, endTime);
+      const [playtimeData, onlinePlayers] = await Promise.all([playtime(startTime, endTime), this.listPlayers()]);
+      // Loop through the online players and see if anyone is online that the 
+      // playtime data didn't catch. That means the player has been online since
+      // the start of the UTC day
+      onlinePlayers.data.players.forEach(player => {
+        if (!playtimeData.find(data => data.user === player)) {
+          const seconds = utils.getSecondsSinceUTCMidnight();
+          playtimeData.push({
+            user: player,
+            playtime: utils.secondsToHMS(seconds),
+            totalSeconds: seconds,
+            isOnline: true
+          });
+        }
+      });
       return {
         command: 'N/A',
         success: true,

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { env } from '$env/dynamic/private';
+import utils from '$lib/utils';
 
 type PlayerData = {
   joinTime: string | null;
@@ -63,10 +64,7 @@ export default async (startQuery?: string, endQuery?: string) => {
     });
 
     const playtimeData = Object.entries(players).map(([player, times]) => {
-      const hours = Math.floor(times.playtime / 3600);
-      const minutes = Math.floor((times.playtime % 3600) / 60);
-      const seconds = times.playtime % 60;
-      const playtime = `${hours}h ${minutes}m ${seconds}s`;
+      const playtime = utils.secondsToHMS(times.playtime);
       const totalSeconds = times.playtime;
       return { user: player, playtime, totalSeconds, isOnline: times.isOnline };
     });

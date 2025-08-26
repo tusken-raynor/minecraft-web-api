@@ -30,6 +30,36 @@ export default {
     }
 
     return { r, g, b };
+  },
+  minecraftTicksToClock(ticks: number): string {
+    // Minecraft day starts at 0, which we'll call 6 AM
+    // So shift time by 6000 ticks to align 0 = midnight
+    const shiftedTicks = (ticks + 6000) % 24000;
+    const hours = Math.floor(shiftedTicks / 1000);
+    const minutes = Math.floor((shiftedTicks % 1000) * 60 / 1000);
+
+    let hh = String(hours).padStart(2, '0');
+    const mm = String(minutes).padStart(2, '0');
+    const amOrPm = hours >= 12 ? 'PM' : 'AM';
+    if (hours > 12) {
+      hh = String(hours - 12).padStart(2, '0');
+    } else if (hours === 0) {
+      hh = '12'; // Midnight case
+    }
+
+    return `${hh}:${mm} ${amOrPm}`;
+  },
+  secondsToHMS(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60); 
+    const secs = seconds % 60;
+    return `${hours}h ${minutes}m ${secs}s`;
+  },
+  getSecondsSinceUTCMidnight(): number {
+    // Get the UTC Epoch seconds, and use modulo
+    // to get the remainder, which is the number of
+    // seconds since midnight
+    return Math.floor((Date.now() / 1000) % 86400);
   }
 }
 
