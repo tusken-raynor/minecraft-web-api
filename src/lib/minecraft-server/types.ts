@@ -112,3 +112,23 @@ export type MinecraftServerOperator = {
   level: number;
   bypassesPlayerLimit: boolean;
 }
+
+export type MinecraftListDetails = { 
+  online: number;
+   max: number;
+   players: string[];
+}
+
+export type MinecraftPlaySession = {
+  id: number;
+  startTime: number;
+  endTime: number;
+  active: boolean;
+}
+
+export type MinecraftUserSessionsInfo = {
+  user: string;
+  sessions: MinecraftPlaySession[];
+  totalSeconds: number;
+  isOnline: boolean;
+}

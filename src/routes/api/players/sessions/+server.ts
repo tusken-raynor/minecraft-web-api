@@ -2,7 +2,7 @@ import minecraftServer from '$lib/minecraft-server';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 
-export const GET: RequestHandler = async ({ request, url }) => {
+export const GET: RequestHandler = async ({ url }) => {
   try {
     const start = url.searchParams.get('start');
     const end = url.searchParams.get('end');
@@ -14,7 +14,9 @@ export const GET: RequestHandler = async ({ request, url }) => {
     if (endQuery !== undefined && isNaN(endQuery)) {
       return json({ success: false, message: 'Invalid end time' }, { status: 400 });
     }
-    const { data } = await minecraftServer.playtimeGet(startQuery, endQuery);
+
+    const { data } = await minecraftServer.playSessionsGet(startQuery, endQuery);
+
     return json({ success: true, data });
   } catch (error) {
     console.error('Error fetching playtime data:', error);

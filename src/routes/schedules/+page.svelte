@@ -233,6 +233,7 @@
     flex-wrap: wrap-reverse;
     align-items: flex-end;
     gap: 1.5em;
+    width: 100%;
   }
 
   h2 {

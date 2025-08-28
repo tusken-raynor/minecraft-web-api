@@ -60,6 +60,11 @@ export default {
     // to get the remainder, which is the number of
     // seconds since midnight
     return Math.floor((Date.now() / 1000) % 86400);
+  },
+  normalizeVector(...nums: number[]): number[] {
+    const length = Math.sqrt(nums.reduce((sum, val) => sum + val * val, 0));
+    if (length === 0) return nums.map(() => 0);
+    return nums.map(val => val / length);
   }
 }
 

@@ -1,3 +1,4 @@
+import { getTaskContext } from "./lib";
 import tasks from "./tasks";
 
 let pulseInterval: NodeJS.Timeout | null = null;
@@ -7,11 +8,12 @@ export function startPulse(interval: number) {
   if (hasStarted) return;
   hasStarted = true;
 
-  pulseInterval = setInterval(() => {
+  pulseInterval = setInterval(async () => {
+    const taskContext = await getTaskContext();
     for (const key in tasks) {
-      const task = (tasks as any)[key];
+      const task: Function = (tasks as any)[key];
       if (typeof task === "function") {
-        task();
+        task.apply(taskContext);
       }
     }
   }, interval);

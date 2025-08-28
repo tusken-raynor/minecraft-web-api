@@ -1,3 +1,6 @@
+import { env } from '$env/dynamic/private';
+import fs from 'fs';
+
 export interface RconOptions {
   host: string;
   port: number;
@@ -5,11 +8,17 @@ export interface RconOptions {
   timeout?: number;
 }
 
-type RCONResponse = string | (() => string);
+type RCONResponse = string | (() => string | Promise<string>);
 
 export default class DummyRcon {
   private responses: Map<RegExp, RCONResponse> = new Map([
-    [/^list$/, 'There are 2 of a max of 20 players online: PlumSquirrel, SF121'],
+    [
+      /^list$/, 
+      (async () => {
+        const online = JSON.parse(await fs.promises.readFile(env.SERVER_PATH + "/dev_online.json", 'utf8'));
+        return `There are ${online.length} of a max of 20 players online: ${online.join(", ")}`;
+      }) as any
+    ],
     [/^time query daytime$/, (() => `The time is ${(Date.now() / 50) % 24000}`) as any],
     [/^time set (.+)$/, 'Time set to $1'],
     [/^say (.+)$/, 'Hello from the server!'],
@@ -20,6 +29,7 @@ export default class DummyRcon {
     [/^op (.+)$/, 'Made $1 a server operator'],
     [/^deop (.+)$/, 'Made $1 no longer a server operator'],
     [/^kick (.+)(\s.+)?$/, 'Kicked $1 from the server'],
+    [/^kill @e\[type=ender_pearl\]$/, 'Killed 3 entities'],
   ]);
 
   constructor(private options: RconOptions) {
@@ -39,7 +49,7 @@ export default class DummyRcon {
     const entry = Array.from(this.responses.entries()).find(([regex]) => regex.test(command));
     if (entry) {
       const [regex, response] = entry;
-      return command.replace(regex, typeof response === 'function' ? response() : response);
+      return command.replace(regex, typeof response === 'function' ? (await response()) : response);
     }
     return `Unknown command: ${command}`;
   }

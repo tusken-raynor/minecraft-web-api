@@ -1,9 +1,10 @@
 import { env } from "$env/dynamic/private";
 import utils from "$lib/utils";
 import fs from "fs";
-import db, { type MySQLSchedulesRecord, type MySQLSelectResult } from "$lib/db";
+import db, { type MySQLPlaySessionsRecord, type MySQLSchedulesRecord, type MySQLSelectResult } from "$lib/db";
 import { nextRun } from "$lib/cron";
 import minecraftServer from "$lib/minecraft-server";
+import { defineTasks, parseLogLine, shouldDisableChunkLoaders } from "./lib";
 
 let lastLine = 0;
 let utcTimestamp = utils.getUTCTimestamp();
@@ -11,7 +12,9 @@ let utcTimestamp = utils.getUTCTimestamp();
 const inProgressCommands = new Set<number>();
 let commandRunTicker = 0;
 
-export default {
+let chunkManagerTicker = 0;
+
+export default defineTasks({
   readServerLogs() {
     const logFile = env.SERVER_PATH + '/logs/latest.log';
     fs.readFile(logFile, 'utf8', (err, data) => {
@@ -67,31 +70,61 @@ export default {
       const statement = `UPDATE schedules SET run_at = CASE id ${updates.map(update => `WHEN ${update.id} THEN ${update.nextRunTime}`).join(" ")} END WHERE id IN (${updates.map(update => update.id).join(", ")})`;
       await db.query(statement);
     }
+  },
+  async pollPlaySessions() {
+    try {
+      // Implementation for polling play sessions
+      const players = new Set(this.listDetails.players);
+
+      const sessions = await db.query<MySQLSelectResult<MySQLPlaySessionsRecord>>(`SELECT * FROM play_sessions WHERE active = TRUE`);
+
+      // Loop through the sessions and end any whose players are no longer online
+      const notActiveRecords: number[] = [];
+      for (let i = 0; i < sessions.length; i++) {
+        const session = sessions[i];
+        if (players.has(session.username)) {
+          // Player is still online, just keep the session active and remove them from the list
+          players.delete(session.username);
+        } else {
+          // Player is no longer online, end the session
+          notActiveRecords.push(session.id);
+        }
+      }
+
+      // Any remaining players on the list players list are online, but don't
+      // have a session record, so we need to create one for them
+      let insertPromise: Promise<any> = Promise.resolve();
+      const now = Math.floor(Date.now() / 1000);
+      if (players.size) {
+        const newPlayers = Array.from(players);
+        insertPromise = db.query(`INSERT INTO play_sessions (username, start_time) VALUES ${newPlayers.map(player => `('${player}', ${now})`).join(", ")}`);
+      }
+
+      // Run a statement that sets all inactive sessions to not active
+      let updatePromise: Promise<any> = Promise.resolve();
+      if (notActiveRecords.length) {
+        updatePromise = db.query(`UPDATE play_sessions SET active = FALSE, end_time = ? WHERE id IN (${notActiveRecords.join(", ")})`, [now]);
+      }
+
+      await Promise.all([insertPromise, updatePromise]);
+    } catch (error) {
+      console.error("Error polling play sessions:", error);
+    }
+  },
+  async manageChunkLoaders() {
+    const shouldRun = chunkManagerTicker === 0; // Run every 12 cycles (aka 2 minute)
+    chunkManagerTicker++;
+    if (chunkManagerTicker >= 12) {
+      chunkManagerTicker = 0;
+    }
+    if (!shouldRun) return;
+    if (!shouldDisableChunkLoaders(this.listDetails.players)) return;
+
+    // Kill any lingering chunk-loader pearls to reduce server-lag
+    const response = await minecraftServer.runCommand('kill @e[type=ender_pearl]');
+    if (response.raw.trim() !== 'No entity was found') {
+      console.log("Chunk loaders managed:", response.raw);
+    }
   }
-}
+})
 
-function parseLogLine(line: string) {
-  // Example patterns, adjust as needed for your log format
-  const playerMessage = /\[(\d+:\d+:\d+)\] \[.*\]: <(\w+)> (.+)/;
-  const playerJoinLeave = /\[(\d+:\d+:\d+)\] \[.+\]: (\w+) (joined|left) the game/;
-  const playerDeath = /\[(\d+:\d+:\d+)\] \[.+\]: (\w+) ((was|died|fell|blew up|tried|was slain|was shot|was killed|was burnt|was pricked|was squashed|was impaled|was pummeled|was stung|was poked|was blown up|was slain|was killed|was shot|was fireballed|was squashed|was impaled|was pummeled|was stung|was poked|was blown up|died).+)/;
-
-  let timestamp = null;
-  let output = '';
-
-  if (playerMessage.test(line)) {
-    const [, time, player, message] = line.match(playerMessage)!;
-    timestamp = time;
-    output = `Message from ${player}: ${message}`;
-  } else if (playerJoinLeave.test(line)) {
-    const [, time, player, action] = line.match(playerJoinLeave)!;
-    timestamp = time;
-    output = `${player} ${action} the game`;
-  } else if (playerDeath.test(line)) {
-    const [, time, player, desc] = line.match(playerDeath)!;
-    timestamp = time;
-    output = `${player} ${desc}`;
-  }
-
-  return [timestamp, output];
-}

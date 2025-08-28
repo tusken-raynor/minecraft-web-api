@@ -51,14 +51,17 @@
 </section>
 
 <style lang="scss">
+  section, form {
+    width: 100%;
+  }
   .std-dropdown,
   .std-input {
     margin-bottom: 24px;
+    width: 400px;
+    max-width: 100%;
   }
-
-  .std-input {
+  .std-dropdown select {
     width: 100%;
-    max-width: 400px;
   }
 
   .response {

@@ -1,6 +1,8 @@
 import fs from 'fs';
 import { env } from '$env/dynamic/private';
 import utils from '$lib/utils';
+import db, { type MySQLPlaySessionsRecord, type MySQLSelectResult } from '$lib/db';
+import type { MinecraftPlaySession, MinecraftUserSessionsInfo } from './types';
 
 type PlayerData = {
   joinTime: string | null;
@@ -9,7 +11,13 @@ type PlayerData = {
   isOnline: boolean;
 };
 
-export default async (startQuery?: string, endQuery?: string) => {
+export default async (startQuery?: string | number, endQuery?: string | number) => {
+  if (typeof startQuery === 'number') {
+    startQuery = secondsToHMS(startQuery);
+  }
+  if (typeof endQuery === 'number') {
+    endQuery = secondsToHMS(endQuery);
+  }
   const logFilePath = `${env.SERVER_PATH}/logs/latest.log`;
 
   const timeRegex = /^([01]\d|2[0-3]):([05]\d|[0-5]\d):([0-5]\d)$/;
@@ -76,6 +84,87 @@ export default async (startQuery?: string, endQuery?: string) => {
   }
 }
 
+export async function playtime2(startQuery?: string | number, endQuery?: string | number) {
+  try {
+    if (typeof startQuery === 'string') {
+      startQuery = Number(startQuery);
+      startQuery = isNaN(startQuery) ? undefined : startQuery;
+    }
+    if (typeof endQuery === 'string') {
+      endQuery = Number(endQuery);
+      endQuery = isNaN(endQuery) ? undefined : endQuery;
+    }
+    let now = Math.floor(Date.now() / 1000);
+    startQuery = startQuery === undefined ? now - 86400 : startQuery;
+    endQuery = endQuery == undefined ? now : endQuery;
+
+    const sessions = await sessionFromWindow(startQuery, endQuery);
+    
+    now = Math.floor(Date.now() / 1000);
+    const sessionAccumulator: Record<string, number> = {};
+    const onlinePlayers = new Set<string>();
+    for (const session of sessions) {
+      const sessionStart = session.start_time < startQuery ? startQuery : session.start_time;
+      const sessionEnd = (session.end_time === null ? now : session.end_time) > endQuery ? endQuery : (session.end_time === null ? now : session.end_time);
+      const playtime = sessionEnd - sessionStart;
+      if (playtime > 0) {
+        if (!sessionAccumulator[session.username]) {
+          sessionAccumulator[session.username] = 0;
+        }
+        sessionAccumulator[session.username] += playtime;
+      }
+      if (session.end_time === null) {
+        onlinePlayers.add(session.username);
+      }
+    }
+
+    const playtimeData = Object.entries(sessionAccumulator).map(([user, totalSeconds]) => {
+      return { user, totalSeconds, playtime: utils.secondsToHMS(totalSeconds), isOnline: onlinePlayers.has(user) };
+    });
+
+    return playtimeData;
+  } catch (error) {
+    console.error('Error in playtime2:', error);
+  }
+  return [];
+}
+
+export async function getPlaytimeSessions(startQuery?: number, endQuery?: number) {
+  const now = Math.floor(Date.now() / 1000);
+  if (startQuery === undefined) {
+    startQuery = now - 86400; // default to last 24 hours
+  }
+  if (endQuery === undefined) {
+    endQuery = now; // default to now
+  }
+
+  const sessions = await sessionFromWindow(startQuery, endQuery);
+  
+  const userRecords: Record<string, MinecraftUserSessionsInfo> = {};
+  for (const session of sessions) {
+    const sessionInfo: MinecraftPlaySession = { 
+      id: session.id, 
+      startTime: session.start_time, 
+      endTime: (session.end_time === null ? now : session.end_time),
+      active: !!session.active 
+    };
+    if (!userRecords[session.username]) {
+      userRecords[session.username] = { user: session.username, sessions: [], totalSeconds: 0, isOnline: false };
+    }
+    userRecords[session.username].sessions.push(sessionInfo);
+    userRecords[session.username].totalSeconds += (sessionInfo.endTime - sessionInfo.startTime);
+    userRecords[session.username].isOnline = userRecords[session.username].isOnline || (sessionInfo.active);
+  }
+
+  return Object.values(userRecords);
+}
+
+async function sessionFromWindow(startTime: number, endTime: number) {
+  const statement = `SELECT * FROM play_sessions WHERE (start_time >= ? AND start_time < ?) OR (end_time >= ? AND end_time < ?) OR (start_time < ? AND (end_time IS NULL OR end_time >= ?))`;
+  const sessions = await db.query<MySQLSelectResult<MySQLPlaySessionsRecord>>(statement, [startTime, endTime, startTime, endTime, startTime, endTime]);
+  return sessions;
+}
+
 function evaluateTime(joinTime: string | null, leaveTime: string | null, startTime = '00:00:00', endTime = '23:59:59') {
   if (!joinTime && !leaveTime) return 0;
   if (joinTime && joinTime > endTime) return 0;
@@ -101,3 +190,10 @@ function evaluateTime(joinTime: string | null, leaveTime: string | null, startTi
   const playtimeMs = leaveTimeMs - joinTimeMs;
   return playtimeMs > 0 ? Math.floor(playtimeMs) : 0;
 };
+
+function secondsToHMS(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}

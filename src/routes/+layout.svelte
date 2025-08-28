@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PUBLIC_APP_VERSION } from "$env/static/public";
   import Toast from "$lib/components/Toast.svelte";
   import "$lib/styles/main.scss";
   import { onMount, onDestroy } from 'svelte';
@@ -21,6 +22,7 @@
     });
     resizeObserver.observe(header);
   });
+  
   onDestroy(() => {
     if (resizeObserver) {
       resizeObserver.disconnect();
@@ -29,7 +31,8 @@
 </script>
 
 <svelte:head>
-	<!-- <link rel="icon" href={favicon} /> -->
+	<title>Minecraft Admin Dashboard</title>
+  <meta name="version" content={PUBLIC_APP_VERSION} />
 </svelte:head>
 
 <header bind:this={header}>

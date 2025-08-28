@@ -66,6 +66,13 @@ export type MySQLSchedulesRecord = {
   created_at: string;
   updated_at: string;
 };
+export type MySQLPlaySessionsRecord = {
+  id: number;
+  username: string;
+  start_time: number;
+  end_time: number | null;
+  active: boolean;
+};
 
 export default {
   query

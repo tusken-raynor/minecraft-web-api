@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import Resizable from '$lib/components/Resizable.svelte';
+  import type { MinecraftUserSessionsInfo } from '$lib/minecraft-server/types';
   import utils from '$lib/utils';
   import { onDestroy, onMount } from 'svelte';
 
@@ -10,7 +11,23 @@
       a[x.name] = { ...x, color: uuidColor(x.uuid || x.name) };
       return a;
     }, {});
-  const playtimeData: Array<{ user: string; playtime: string; totalSeconds: number; isOnline: boolean; }> = page.data.playtime;
+  const playSessions = (page.data.sessions as MinecraftUserSessionsInfo[])
+    .toSorted((a, b) => b.totalSeconds - a.totalSeconds)
+    .map(x => {
+      return { ...x, sessions: x.sessions.map(s => {
+        return { 
+          ...s, 
+          diffStart: diffPeriodSeconds(s.startTime),  
+          diffEnd: diffPeriodSeconds(s.endTime)
+        };
+      }) };
+    });
+  
+  function diffPeriodSeconds(time: number, period = 86400) {
+    const now = Math.floor(Date.now() / 1000);
+    const diff = (now - time);
+    return diff;
+  }
 
   let extraSecs = $state(0);
   let secTimerId: any = -1;
@@ -31,26 +48,19 @@
   let daytimeTicks = $state(-1);
   let daytimeTimerId: any = -1;
   let celestialPositions = $derived.by(() => {
-    const sunAngle = (daytimeTicks + 12000) / 24000 * Math.PI * 2;
-    const sunPosX = Math.cos(sunAngle) / 2 + 0.5;
-    const sunPosY = Math.sin(sunAngle) / 2 + 0.5;
-    const moonAngle = daytimeTicks / 24000 * Math.PI * 2;
-    const moonPosX = Math.cos(moonAngle) / 2 + 0.5;
-    const moonPosY = Math.sin(moonAngle) / 2 + 0.5;
-    return { sunPosX, sunPosY, moonPosX, moonPosY };
+    const angle = daytimeTicks / 24000 * Math.PI * 2;
+    const x = Math.cos(angle);
+    const y = Math.sin(angle);
+    const sunX = -x;
+    const sunY = -y;
+    const moonX = x;
+    const moonY = y;
+    return { sunX, sunY, moonX, moonY };
   });
 
   async function fetchWorldTime() {
     const response = await fetch('/api/world-time').then(r => r.json());
     if (response.success) {
-      const diff = response.data.ticks - daytimeTicks;
-      if (diff < 0) {
-        console.log(`Est. time was ahead by ${-diff} ticks`);
-      } else if (diff > 0) {
-        console.log(`Est. time was behind by ${diff} ticks`);
-      } else {
-        console.log(`Est. time is accurate`);
-      }
       daytimeTicks = response.data.ticks;
     } else {
       console.warn('Failed to fetch world time:', response.message);
@@ -92,11 +102,19 @@
 <section class="playtime-graph">
   <h3 class="notable-fnt">Playtime Graph <span class="lato-fnt">(UTC Day)</span></h3>
   <div id="utc-graph">
-    {#each playtimeData.toSorted((a, b) => b.totalSeconds - a.totalSeconds) as { user, totalSeconds, isOnline }}
+    {#each playSessions as { user, totalSeconds, isOnline, sessions }}
       {@const userSeconds = isOnline ? totalSeconds + extraSecs : totalSeconds}
-      <div class="bar {isOnline ? 'online' : ''}" style="--alpha:{userSeconds / 86400}; --user-color:{userIndex[user].color}">
+      <div class="bar {isOnline ? 'online' : ''}" data-seconds={userSeconds} style="--user-color:{userIndex[user].color}">
         <span class="cs-user">{user}</span>
         <span class="cs-pt">{toTimeStamp(userSeconds)}</span>
+        {#each sessions as session}
+          {@const sessionSeconds = (session.active ? (session.endTime + extraSecs) : session.endTime) - session.startTime}
+          <div 
+            class="session" 
+            title={`Session: ${toTimeStamp(sessionSeconds)} (${new Date(session.startTime * 1000).toLocaleString()} - ${session.active ? 'Now' : new Date(session.endTime * 1000).toLocaleString()})`}
+            style="--start: {session.diffStart + extraSecs}; --end: {session.active ? 0 : (session.diffEnd + extraSecs)};"
+          ></div>
+        {/each}
       </div>
     {/each}
   </div>
@@ -109,7 +127,7 @@
   </div>
 </section>
 {#if daytimeTicks >= 0 }
-  <section class="daytime-clock" style="--sun-x:{celestialPositions.sunPosX}; --sun-y:{celestialPositions.sunPosY}; --moon-x:{celestialPositions.moonPosX}; --moon-y:{celestialPositions.moonPosY}">
+  <section class="daytime-clock" style={Object.entries(celestialPositions).map(([key, value]) => `--${key}: ${value};`).join(' ')}>
     <h3 class="notable-fnt">Daytime Clock</h3>
     <Resizable className="clock" on:resize={e => e.detail.entry.target.style.setProperty('--clock-size', `${e.detail.rect.width}px`)}>
       <span class="time">{utils.minecraftTicksToClock(daytimeTicks)}</span>
@@ -120,6 +138,27 @@
 {/if}
 
 <style lang="scss">
+  @property --sunX {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+  @property --sunY {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+  @property --moonX {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+  @property --moonY {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+
   :global(main) {
     display: flex;
     flex-wrap: wrap;
@@ -159,6 +198,8 @@
     margin-top: 16px;
     border: 1px solid var(--txt-main);
     border-radius: 4px;
+    overflow: auto;
+    direction: rtl;
   }
   #utc-graph .bar {
     padding: 0.4em 0.9em;
@@ -182,19 +223,20 @@
   }
   #utc-graph .bar .cs-user {
     font-weight: 700;
+    order: 1;
   }
   #utc-graph .bar .cs-pt {
     font-size: 13px;
   }
-  #utc-graph .bar::before {
+  #utc-graph .session {
     content: "";
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
     z-index: -1;
     background-color: var(--user-color);
-    width: calc(100% * var(--alpha));
+    right: calc(var(--end) / 86400 * 100%);
+    left: calc(100% - (var(--start) / 86400 * 100%));
   }
   .time-scale {
     display: flex;
@@ -204,8 +246,11 @@
   }
 
   .daytime-clock {
-    margin-inline: auto;
     max-width: 100%;
+    @media (max-width: 715px) {
+      flex-basis: 100%;
+    }
+
     :global(.clock) {
       width: 220px;
       aspect-ratio: 1;
@@ -216,6 +261,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      margin-inline: auto;
     }
 
     .sun, .moon {
@@ -224,15 +270,33 @@
       position: absolute;
       top: 0;
       left: 0;
-      transition: transform 1s linear;
       z-index: 3;
+      transition: --sunX 1s linear, --sunY 1s linear, --moonX 1s linear, --moonY 1s linear;
       animation: fade-in 3s linear;
+      $count: 5;
+      @for $i from 0 through $count {
+        @if $i == $count {
+          --length: calc(0.5 * (var(--x#{$i - 1}) + var(--get-sqrt) / var(--x#{$i - 1})));
+        } @else if $i == 0 {
+          --x0: 1;
+        } @else {
+          --x#{$i}: calc(0.5 * (var(--x#{$i - 1}) + var(--get-sqrt) / var(--x#{$i - 1})));
+        }
+      }
     }
     .sun {
-      transform: translate(calc(var(--sun-x) * var(--clock-size)), calc(var(--sun-y) * var(--clock-size)));
+      // transform: rotate(var(--sun-angle)) translateX(calc(var(--clock-size) * 0.5)) rotate(calc(var(--sun-angle) * -1));
+      --get-sqrt: calc(var(--sunX) * var(--sunX) + var(--sunY) * var(--sunY));
+      --x: calc((var(--sunX) / var(--length) + 1) / 2);
+      --y: calc((var(--sunY) / var(--length) + 1) / 2);
+      transform: translate(calc(var(--x) * var(--clock-size)), calc(var(--y) * var(--clock-size)));
     }
     .moon {
-      transform: translate(calc(var(--moon-x) * var(--clock-size)), calc(var(--moon-y) * var(--clock-size)));
+      // transform: rotate(var(--moon-angle)) translateX(calc(var(--clock-size) * 0.5)) rotate(calc(var(--moon-angle) * -1));
+      --get-sqrt: calc(var(--moonX) * var(--moonX) + var(--moonY) * var(--moonY));
+      --x: calc(var(--moonX) / var(--length) / 2 + 0.5);
+      --y: calc(var(--moonY) / var(--length) / 2 + 0.5);
+      transform: translate(calc(var(--x) * var(--clock-size)), calc(var(--y) * var(--clock-size)));
     }
 
     .sun::after, .moon::after {

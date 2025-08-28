@@ -1,10 +1,10 @@
 import { Rcon } from 'rcon-client';
-import type { MinecraftCommandResponse, MinecraftServerOperator, MinecraftServerOptions, MinecraftTellrawText, MinecraftTimeOfDay } from './types';
+import type { MinecraftCommandResponse, MinecraftListDetails, MinecraftServerOperator, MinecraftServerOptions, MinecraftTellrawText, MinecraftTimeOfDay, MinecraftUserSessionsInfo } from './types';
 import { dev } from '$app/environment';
 import RconDummy from './rcon-dummy';
 import { env } from '$env/dynamic/private';
 import fs from "fs";
-import playtime from './playtime';
+import playtime, { getPlaytimeSessions, playtime2 } from './playtime';
 import utils from '$lib/utils';
 
 export default class MinecraftServer {
@@ -59,7 +59,7 @@ export default class MinecraftServer {
     }
   }
 
-  async listPlayers(): Promise<MinecraftCommandResponse<{ online: number; max: number; players: string[]; }>> {
+  async listPlayers(): Promise<MinecraftCommandResponse<MinecraftListDetails>> {
     const response = await this.runCommand('list');
     const messageParts = response.data.match(/(\d+) of a max of (\d+) players online: (.+)/);
     const online = messageParts ? parseInt(messageParts[1], 10) : 0;
@@ -180,9 +180,10 @@ export default class MinecraftServer {
     return await this.runCommand(`time set ${time}`);
   }
 
-  async playtimeGet(startTime?: string, endTime?: string): Promise<MinecraftCommandResponse<Array<{ user: string; playtime: string; totalSeconds: number; isOnline: boolean; }>>> {
+  async playtimeGet(startTime?: string | number, endTime?: string | number, legacy = false): Promise<MinecraftCommandResponse<Array<{ user: string; playtime: string; totalSeconds: number; isOnline: boolean; }>>> {
     try {
-      const [playtimeData, onlinePlayers] = await Promise.all([playtime(startTime, endTime), this.listPlayers()]);
+      const getPlaytime = legacy ? playtime : playtime2;
+      const [playtimeData, onlinePlayers] = await Promise.all([getPlaytime(startTime, endTime), this.listPlayers()]);
       // Loop through the online players and see if anyone is online that the 
       // playtime data didn't catch. That means the player has been online since
       // the start of the UTC day
@@ -205,6 +206,26 @@ export default class MinecraftServer {
       };
     } catch (error) {
       console.error('Error fetching playtime data:', error);
+      return {
+        command: 'N/A',
+        success: false,
+        data: [],
+        raw: String(error)
+      };
+    }
+  }
+
+  async playSessionsGet(startTime?: number, endTime?: number): Promise<MinecraftCommandResponse<MinecraftUserSessionsInfo[]>> {
+    try {
+      const sessions = await getPlaytimeSessions(startTime, endTime);
+      return {
+        command: 'N/A',
+        success: true,
+        data: sessions,
+        raw: ''
+      };
+    } catch (error) {
+      console.error('Error fetching play sessions data:', error);
       return {
         command: 'N/A',
         success: false,

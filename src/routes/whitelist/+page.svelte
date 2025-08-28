@@ -123,6 +123,7 @@
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 1.5em;
+    width: 100%;
     @media (max-width: 700px) {
       flex-direction: column;
     }
